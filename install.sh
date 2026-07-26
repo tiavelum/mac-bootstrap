@@ -29,7 +29,11 @@ else
   echo "!! 'code' command not found — open VS Code once, then rerun (or install the extension manually)"
 fi
 
-# 4. Manual steps (cannot be automated)
+# 4. Git aliases (versioned in this repo, linked via include)
+echo "==> Linking git aliases..."
+git config --global include.path "$(cd "$(dirname "$0")" && pwd)/gitconfig-aliases"
+
+# 5. Manual steps (cannot be automated)
 cat <<'EOF'
 
 ==> Done. Remaining manual steps:

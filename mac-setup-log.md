@@ -31,6 +31,7 @@ Goal: document the setup so it can be automated later (see `Brewfile` and `insta
 | Claude extension for Excel | Office add-in | Installed inside Excel |
 | Claude Code extension for VS Code | VS Code extension | Login choice: **Claude.ai Subscription** (included in Claude plan, not API/Console billing) |
 | GitHub personal access token (classic) | Config | For git over HTTPS in Terminal; `repo` scope; stored silently in macOS Keychain (not the Passwords app). Regenerate at github.com/settings/tokens if a new Mac needs it |
+| Git aliases | Config | ~130 aliases recovered from "git alias" email (2026-04-29, written on Windows), ported to `gitconfig-aliases` in this repo. Activated via `git config --global include.path ~/mac-setup/gitconfig-aliases`. Fixes: latest-tag sort corruption, missing `git` in clean-them-all, Windows quote-escaping in squash-n |
 
 ---
 
