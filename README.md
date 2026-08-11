@@ -9,8 +9,8 @@ Personal log and automation for setting up my MacBook Air.
 ## Fresh Mac in three commands
 
 ```zsh
-git clone https://github.com/tiavelum/mac-setup.git
-cd mac-setup
+git clone https://github.com/tiavelum/mac-setup.git ~/vc/mac-setup
+cd ~/vc/mac-setup
 ./install.sh
 ```
 

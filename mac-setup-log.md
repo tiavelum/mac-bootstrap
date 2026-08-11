@@ -33,6 +33,13 @@ Goal: document the setup so it can be automated later (see `Brewfile` and `insta
 | GitHub personal access token (classic) | Config | For git over HTTPS in Terminal; `repo` scope; stored silently in macOS Keychain (not the Passwords app). Regenerate at github.com/settings/tokens if a new Mac needs it |
 | Git aliases | Config | ~130 aliases recovered from "git alias" email (2026-04-29, written on Windows), ported to `gitconfig-aliases` in this repo. Activated via `git config --global include.path ~/mac-setup/gitconfig-aliases`. Fixes: latest-tag sort corruption, missing `git` in clean-them-all, Windows quote-escaping in squash-n |
 
+## 2026-08-11
+
+| Item | Type | Notes |
+|---|---|---|
+| git-autosync | Tool | New repo <https://github.com/tiavelum/git-autosync>: launchd jobs that auto-pull watched clones every 15 min and push on demand via `<repo>/.git/autosync-push` trigger. Installed via its `install.sh`; config in `~/.config/git-autosync/repos` |
+| Repos moved to `~/vc` | Config | All local clones now live under `~/vc` (setup-docs, git-autosync, mac-setup); new convention, see repo-location-vc skill. Re-set `git config --global include.path ~/vc/mac-setup/gitconfig-aliases`; updated autosync config paths and re-ran its installer |
+
 ---
 
 ## How to add entries
