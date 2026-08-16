@@ -29,6 +29,18 @@ else
   echo "!! 'code' command not found — open VS Code once, then rerun (or install the extension manually)"
 fi
 
+# 3a. Git identity — set this before anything commits.
+#     Left unset, git does not refuse: it invents "Full Name <user@hostname>"
+#     from the OS account, prints one hint, and commits. GitHub cannot match
+#     that address to the account, so those commits show up unattributed.
+#     Easy to miss, because commits made through the GitHub connector or from
+#     a Cowork sandbox never touch this config — the first *local* committer
+#     is what exposes it, and that is often an unattended script.
+echo "==> Setting git identity..."
+git config --global user.name  "AndiT"
+git config --global user.email "andreas.tiefenauer@gmail.com"
+echo "    $(git config --global user.name) <$(git config --global user.email)>"
+
 # 4. Config and sync repos under ~/vc
 #    dotfiles     = personal config (git aliases, git-autosync repo list)
 #    git-autosync = the sync tool itself
@@ -90,6 +102,7 @@ cat <<'EOF'
 
 ==> Verify:
   git alias | wc -l                        # 129
+  git config --global user.email           # not empty, matches GitHub
   readlink ~/.config/git-autosync/repos    # -> ~/vc/dotfiles/git-autosync-repos
   launchctl list | grep git-autosync
 EOF
