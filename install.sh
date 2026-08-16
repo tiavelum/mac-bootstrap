@@ -1,109 +1,129 @@
 #!/bin/zsh
-# install.sh — bootstrap a fresh Mac
-# Pure zsh (ships with macOS), no Python or other runtime needed.
+# install.sh — bootstrap a fresh Mac.
+#
+# ORCHESTRATION ONLY: preconditions, clones, and calls into other repos'
+# installers. No mechanism of its own — a step that does real work inline
+# belongs in a repo of its own. See setup-13 §3 in tiavelum/setup-docs.
+# If you are about to add such a step here, that is the signal to create
+# (or use) the repo it belongs to.
+#
 # Usage: ./install.sh
 
 set -e
 
 echo "==> Mac setup bootstrap"
 
-# 1. Homebrew (the standard macOS package manager; only prerequisite)
+# --- Preconditions ------------------------------------------------------
+# Everything below is cloned from private repos, so both of these must be
+# true before anything else can work. They used to live only in the README.
+
+# 1. Homebrew — the one prerequisite nothing else can provide.
 if ! command -v brew >/dev/null 2>&1; then
   echo "==> Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  # Make brew available in this shell (Apple Silicon path)
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  eval "$(/opt/homebrew/bin/brew shellenv)"   # Apple Silicon path
 else
   echo "==> Homebrew already installed"
 fi
 
-# 2. Apps from Brewfile
-echo "==> Installing apps from Brewfile..."
-brew bundle --file="$(dirname "$0")/Brewfile"
-
-# 3. VS Code extensions
-if command -v code >/dev/null 2>&1; then
-  echo "==> Installing VS Code extensions..."
-  code --install-extension anthropic.claude-code --force
-else
-  echo "!! 'code' command not found — open VS Code once, then rerun (or install the extension manually)"
+# 2. gh, authenticated. The full app list lives in a private repo, so gh
+#    cannot come from it — it is installed directly here, ahead of the
+#    clones, and appears in the Brewfile as well for completeness.
+if ! command -v gh >/dev/null 2>&1; then
+  echo "==> Installing gh..."
+  brew install gh
 fi
 
-# 3a. Refuse to guess a git identity.
-#     Left to itself, git invents "Full Name <user@hostname>" from the OS
-#     account, prints one hint, and commits — GitHub cannot attribute those
-#     commits, and nobody notices, least of all when the committer is an
-#     unattended script. The identity itself lives in dotfiles/gitconfig
-#     (step 4a); this setting is what makes a broken include loud instead
-#     of silent, so it is written here, into ~/.gitconfig, and must NOT be
-#     moved into the included file.
-git config --global user.useConfigOnly true
+if ! gh auth status >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+!! Not authenticated with GitHub. Every repo below is private.
+   Run this, choosing SSH when asked, then re-run this script:
 
-# 4. Config and sync repos under ~/vc
-#    dotfiles     = personal config (gitconfig: identity + aliases;
-#                   git-autosync repo list)
-#    git-autosync = the sync tool itself
-#    Both are cloned rather than vendored here: config lives apart from
-#    the scripts that use it.
-echo "==> Setting up ~/vc repos..."
+     gh auth login
+
+EOF
+  exit 1
+fi
+
+# --- Repos --------------------------------------------------------------
+echo "==> Cloning repos into ~/vc..."
 mkdir -p "$HOME/vc"
 
 clone_if_missing() {
-  name="$1"; url="$2"; dest="$HOME/vc/$1"
+  dest="$HOME/vc/$1"
   if [ -d "$dest/.git" ]; then
-    echo "    $name already cloned"
-  elif git clone "$url" "$dest" 2>/dev/null; then
-    echo "    cloned $name"
+    echo "    $1 already cloned"
+  elif git clone "git@github.com:tiavelum/$1.git" "$dest" 2>/dev/null; then
+    echo "    cloned $1"
   else
-    echo "!! could not clone $name — run 'gh auth login' first, then rerun this script" >&2
+    echo "!! could not clone $1" >&2
     return 1
   fi
 }
 
-clone_if_missing dotfiles     git@github.com:tiavelum/dotfiles.git     || true
-clone_if_missing git-autosync git@github.com:tiavelum/git-autosync.git || true
+# dotfiles first: it carries the config every later step reads.
+clone_if_missing dotfiles           || true
+clone_if_missing git-autosync       || true
+clone_if_missing macprefs           || true
+clone_if_missing macos-quick-actions || true
+clone_if_missing setup-docs         || true
 
-# 4a. Git identity and aliases — included live from the dotfiles clone,
-#     never copied. A missing include is skipped by git in silence, so
-#     check the file and then check the effect.
-if [ -f "$HOME/vc/dotfiles/gitconfig" ]; then
-  git config --global include.path "$HOME/vc/dotfiles/gitconfig"
-  echo "    git config included: $(git config user.name) <$(git config user.email)>, $(git alias 2>/dev/null | wc -l | tr -d ' ') aliases"
+# --- Wiring: each repo installs itself ----------------------------------
+if [ -f "$HOME/vc/dotfiles/install.sh" ]; then
+  echo "==> dotfiles/install.sh"
+  zsh "$HOME/vc/dotfiles/install.sh"
 else
-  echo "!! ~/vc/dotfiles/gitconfig missing — no identity, no aliases." >&2
-  echo "   git will refuse to commit (useConfigOnly) rather than guess. Clone dotfiles." >&2
-fi
-
-# 4b. git-autosync reads its repo list from ~/.config; symlink it at the
-#     versioned copy so the list is never a machine-local orphan again.
-if [ -f "$HOME/vc/dotfiles/git-autosync-repos" ]; then
-  mkdir -p "$HOME/.config/git-autosync"
-  ln -sfn "$HOME/vc/dotfiles/git-autosync-repos" "$HOME/.config/git-autosync/repos"
-  echo "    git-autosync repo list symlinked into dotfiles"
-else
-  echo "!! ~/vc/dotfiles/git-autosync-repos missing — git-autosync would sync nothing" >&2
+  echo "!! ~/vc/dotfiles/install.sh missing — git identity, aliases and the" >&2
+  echo "   autosync repo list are NOT wired up" >&2
 fi
 
 if [ -f "$HOME/vc/git-autosync/install.sh" ]; then
-  echo "==> Installing git-autosync agents..."
+  echo "==> git-autosync/install.sh"
   "$HOME/vc/git-autosync/install.sh"
 fi
 
-# 5. Manual steps (cannot be automated)
+# macos-quick-actions has no installer yet — see open-items in setup-docs.
+if [ -f "$HOME/vc/macos-quick-actions/install.sh" ]; then
+  echo "==> macos-quick-actions/install.sh"
+  "$HOME/vc/macos-quick-actions/install.sh"
+fi
+
+# --- Install what the config declares -----------------------------------
+BREWFILE="$HOME/vc/dotfiles/Brewfile"
+if [ -f "$BREWFILE" ]; then
+  echo "==> brew bundle ($BREWFILE)"
+  brew bundle --file="$BREWFILE"
+else
+  echo "!! $BREWFILE missing — no apps installed" >&2
+fi
+
+EXTENSIONS="$HOME/vc/dotfiles/vscode-extensions"
+if [ -f "$EXTENSIONS" ] && command -v code >/dev/null 2>&1; then
+  echo "==> VS Code extensions"
+  sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$EXTENSIONS" | while IFS= read -r ext || [ -n "$ext" ]; do
+    [ -n "$ext" ] || continue
+    code --install-extension "$ext" --force
+  done
+elif [ -f "$EXTENSIONS" ]; then
+  echo "!! 'code' not on PATH — open VS Code once, then re-run" >&2
+fi
+
+# --- Manual steps -------------------------------------------------------
 cat <<'EOF'
 
 ==> Done. Remaining manual steps:
-  - GitHub first: 'gh auth login' (SSH) — do this before step 4 works
-  - Clone the remaining repos named in ~/vc/dotfiles/git-autosync-repos
+  - Clone any other repos named in ~/vc/dotfiles/git-autosync-repos
   - Sign in: iCloud, OneDrive, WhatsApp (QR code), Chrome, Claude
   - Claude in Chrome extension: install from Chrome
   - Claude add-ins for Word/Excel: install from within Word/Excel
   - Claude Code in VS Code: log in with "Claude.ai Subscription"
+  - Logi Options+: reboot, then assign the MX Keys screenshot key
+  - Maccy: launch at login, history size, hotkey
   - Passwords app: syncs via Apple account automatically
 
 ==> Verify:
   git alias | wc -l                        # 129
-  git config user.email                    # from dotfiles/gitconfig, not empty
+  git config user.email                    # from dotfiles/gitconfig
   readlink ~/.config/git-autosync/repos    # -> ~/vc/dotfiles/git-autosync-repos
   launchctl list | grep git-autosync
 EOF
