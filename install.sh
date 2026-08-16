@@ -29,20 +29,19 @@ else
   echo "!! 'code' command not found — open VS Code once, then rerun (or install the extension manually)"
 fi
 
-# 3a. Git identity — set this before anything commits.
-#     Left unset, git does not refuse: it invents "Full Name <user@hostname>"
-#     from the OS account, prints one hint, and commits. GitHub cannot match
-#     that address to the account, so those commits show up unattributed.
-#     Easy to miss, because commits made through the GitHub connector or from
-#     a Cowork sandbox never touch this config — the first *local* committer
-#     is what exposes it, and that is often an unattended script.
-echo "==> Setting git identity..."
-git config --global user.name  "AndiT"
-git config --global user.email "andreas.tiefenauer@gmail.com"
-echo "    $(git config --global user.name) <$(git config --global user.email)>"
+# 3a. Refuse to guess a git identity.
+#     Left to itself, git invents "Full Name <user@hostname>" from the OS
+#     account, prints one hint, and commits — GitHub cannot attribute those
+#     commits, and nobody notices, least of all when the committer is an
+#     unattended script. The identity itself lives in dotfiles/gitconfig
+#     (step 4a); this setting is what makes a broken include loud instead
+#     of silent, so it is written here, into ~/.gitconfig, and must NOT be
+#     moved into the included file.
+git config --global user.useConfigOnly true
 
 # 4. Config and sync repos under ~/vc
-#    dotfiles     = personal config (git aliases, git-autosync repo list)
+#    dotfiles     = personal config (gitconfig: identity + aliases;
+#                   git-autosync repo list)
 #    git-autosync = the sync tool itself
 #    Both are cloned rather than vendored here: config lives apart from
 #    the scripts that use it.
@@ -64,13 +63,15 @@ clone_if_missing() {
 clone_if_missing dotfiles     git@github.com:tiavelum/dotfiles.git     || true
 clone_if_missing git-autosync git@github.com:tiavelum/git-autosync.git || true
 
-# 4a. Git aliases — included live from the dotfiles clone, never copied.
-#     A missing include is skipped by git in silence, so check the file.
-if [ -f "$HOME/vc/dotfiles/gitconfig-aliases" ]; then
-  git config --global include.path "$HOME/vc/dotfiles/gitconfig-aliases"
-  echo "    git aliases active ($(git alias 2>/dev/null | wc -l | tr -d ' ') found)"
+# 4a. Git identity and aliases — included live from the dotfiles clone,
+#     never copied. A missing include is skipped by git in silence, so
+#     check the file and then check the effect.
+if [ -f "$HOME/vc/dotfiles/gitconfig" ]; then
+  git config --global include.path "$HOME/vc/dotfiles/gitconfig"
+  echo "    git config included: $(git config user.name) <$(git config user.email)>, $(git alias 2>/dev/null | wc -l | tr -d ' ') aliases"
 else
-  echo "!! ~/vc/dotfiles/gitconfig-aliases missing — git aliases NOT active" >&2
+  echo "!! ~/vc/dotfiles/gitconfig missing — no identity, no aliases." >&2
+  echo "   git will refuse to commit (useConfigOnly) rather than guess. Clone dotfiles." >&2
 fi
 
 # 4b. git-autosync reads its repo list from ~/.config; symlink it at the
@@ -102,7 +103,7 @@ cat <<'EOF'
 
 ==> Verify:
   git alias | wc -l                        # 129
-  git config --global user.email           # not empty, matches GitHub
+  git config user.email                    # from dotfiles/gitconfig, not empty
   readlink ~/.config/git-autosync/repos    # -> ~/vc/dotfiles/git-autosync-repos
   launchctl list | grep git-autosync
 EOF
