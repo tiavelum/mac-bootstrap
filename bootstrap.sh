@@ -20,6 +20,17 @@
 #               running it. Checks still run for real, so the output shows
 #               which stages *would* fire on this machine and which are
 #               already satisfied. Safe on a Mac you care about.
+#
+# ON A BRAND-NEW MAC there is no git and no GitHub login yet, so this file
+# cannot be cloned — fetch it through the browser instead: GitHub ->
+# mac-bootstrap -> bootstrap.sh -> Raw -> save to Downloads. Then, in
+# Terminal, paste exactly this (no tilde needed — $HOME is the same thing
+# and is on every keyboard):
+#
+#     zsh $HOME/Downloads/bootstrap.sh
+#
+# Stage 1 installs Homebrew and gh, then stops and tells you to log in.
+# Log in, paste the same line again, and it runs through.
 
 set -e
 
@@ -29,7 +40,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done

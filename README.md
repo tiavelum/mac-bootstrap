@@ -3,17 +3,30 @@
 Bootstrap for a fresh MacBook Air. **Orchestration only** — this repo owns
 no configuration and no mechanisms of its own.
 
-## Run it
+## Run it on a brand-new Mac
+
+A fresh machine has no `git` and no GitHub login, so this repo cannot be
+cloned yet — and every repo the script needs is private. The way in is the
+browser: open this repo on GitHub → `bootstrap.sh` → **Raw** → save it to
+Downloads. Then in Terminal, paste exactly:
 
 ```zsh
-# Homebrew and gh come first — every repo here is private
-brew install gh && gh auth login          # choose SSH
-git clone git@github.com:tiavelum/mac-bootstrap.git ~/vc/mac-bootstrap
-cd ~/vc/mac-bootstrap && ./bootstrap.sh        # --skip-transport to leave stage 7 out
+zsh $HOME/Downloads/bootstrap.sh
 ```
 
-`bootstrap.sh` is the entry point. It installs Homebrew and `gh` itself if they
-are missing, and stops with instructions if you are not authenticated.
+(`$HOME` is the same as `~`, and it is on every keyboard.) Stage 1 installs
+the Xcode command-line tools, Homebrew and `gh`, then stops and tells you to
+run `gh auth login` — choose SSH and the browser flow. Paste the same line
+again and it runs through all seven stages; the copy of this repo it clones
+into `~/vc` is the one you keep.
+
+## Run it again later
+
+```zsh
+cd $HOME/vc/mac-bootstrap && ./bootstrap.sh     # --skip-transport to leave stage 7 out
+```
+
+Idempotent — re-running is how you repair a machine whose wiring drifted.
 
 ## Try it first: `--dry-run`
 
