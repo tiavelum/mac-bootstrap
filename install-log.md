@@ -1,7 +1,11 @@
-# Mac Setup Log
+# Install log
+
+> Previously called `mac-setup-log.md`, renamed on 2026-08-17 when the
+> repository became `mac-bootstrap`.
 
 Chronological log of everything installed and configured on this MacBook Air.
-Goal: document the setup so it can be automated later (see `Brewfile` and `install.sh`).
+Goal: document the setup so it can be automated later (see
+`machine-config/Brewfile` and `bootstrap.sh`).
 
 > Note: logging started late, so early entries are reconstructed from memory and dates are approximate.
 
@@ -59,7 +63,8 @@ Append a row under today's date (create the date section if needed):
 
 Types:
 
-- **App** — installable via Homebrew if possible → also add it to `Brewfile`
+- **App** — installable via Homebrew if possible → also add it to
+  `machine-config/Brewfile`
 - **Extension** — browser/VS Code/Office extensions, usually installed from within the host app
 - **Config** — settings, accounts, preferences (note whether it syncs via Apple/Google account)
 - **One-off** — done once, not part of a fresh-machine setup

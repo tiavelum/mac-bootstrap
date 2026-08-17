@@ -52,7 +52,7 @@ unauthenticated `gh` stops the run and names the command to type.
 The authoritative map of which repo holds what is in
 [setup-design.md](https://github.com/tiavelum/setup-docs/blob/main/setup-design.md).
 
-## `mac-setup-log.md`
+## `install-log.md`
 
 Chronological journal of what was installed and when. Append-only: entries are
 correct *as history*, so stale paths in old rows stay. Current truth lives in
@@ -60,7 +60,7 @@ correct *as history*, so stale paths in old rows stay. Current truth lives in
 
 ## Workflow
 
-1. Install something → add a row to `mac-setup-log.md`
+1. Install something → add a row to `install-log.md`
 2. If it's Homebrew-installable → also add it to `machine-config/Brewfile`
 3. Commit — nothing commits for you; git-autosync only transports commits
 4. `touch .git/autosync-push` to publish, then check `.git/autosync-status`

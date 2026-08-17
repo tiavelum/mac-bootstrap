@@ -101,7 +101,7 @@ clone_if_missing doc-convert         || true
 clone_if_missing vcard-merge         || true
 # Knowledge.
 clone_if_missing setup-docs          || true
-# Transport for stage 7; cloned here so the repo list is complete either way.
+# Transport for stage 7; cloned here so the clone list is complete either way.
 clone_if_missing git-autosync        || true
 
 # --- Stage 3: wire the config -------------------------------------------
@@ -112,7 +112,7 @@ if [ -f "$HOME/vc/machine-config/install.sh" ]; then
   zsh "$HOME/vc/machine-config/install.sh"
 else
   echo "!! ~/vc/machine-config/install.sh missing — git identity, aliases and the" >&2
-  echo "   autosync repo list are NOT wired up" >&2
+  echo "   sync list are NOT wired up" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
@@ -201,7 +201,7 @@ cat <<'EOF'
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
-  git config user.email                    # from dotfiles/gitconfig
+  git config user.email                    # from machine-config/gitconfig
   readlink ~/.config/git-autosync/repos    # -> ~/vc/machine-config/git-autosync-repos
   launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
