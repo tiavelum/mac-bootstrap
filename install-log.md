@@ -3,6 +3,12 @@
 > Previously called `mac-setup-log.md`, renamed on 2026-08-17 when the
 > repository became `mac-bootstrap`.
 
+⚠️ **Rows are history and are never rewritten.** They describe what was
+true on the date in the row, so they name repositories, paths and documents
+that have since been renamed or removed — `mac-setup`, `dotfiles`,
+`gitconfig-aliases`, the numbered `setup-NN` documents. That is correct for a
+log; the current names are in `setup-design.md`.
+
 Chronological log of everything installed and configured on this MacBook Air.
 Goal: document the setup so it can be automated later (see
 `machine-config/Brewfile` and `bootstrap.sh`).

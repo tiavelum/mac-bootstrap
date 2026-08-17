@@ -208,7 +208,7 @@ cat <<'EOF'
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
-  git config user.email                    # from dotfiles/gitconfig
+  git config user.email                    # from machine-config/gitconfig
   readlink ~/.config/git-autosync/repos    # -> ~/vc/machine-config/git-autosync-repos
   launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
