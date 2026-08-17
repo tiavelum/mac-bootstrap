@@ -78,38 +78,41 @@ fi
 echo "==> [2/7] Cloning repos into ~/vc"
 mkdir -p "$HOME/vc"
 
+failed_clones=""
+
 clone_if_missing() {
   dest="$HOME/vc/$1"
   if [ -d "$dest/.git" ]; then
     echo "    $1 already cloned"
-  elif git clone --quiet "git@github.com:tiavelum/$1.git" "$dest" 2>/dev/null; then
+  elif git clone --quiet "git@github.com:tiavelum/$1.git" "$dest"; then
     echo "    cloned $1"
   else
     echo "!! could not clone $1" >&2
-    return 1
+    failed_clones="$failed_clones $1"
   fi
 }
 
 # machine-config first: it carries the config every later stage reads.
-clone_if_missing machine-config      || true
+clone_if_missing machine-config
 # Tools that install or are invoked by later stages.
-clone_if_missing macprefs            || true   # stage 6 needs the tool
-clone_if_missing macprefs-config     || true   # ... and its snapshots
-clone_if_missing macos-quick-actions || true
+clone_if_missing macprefs                      # stage 6 needs the tool
+clone_if_missing macprefs-config               # ... and its snapshots
+clone_if_missing macos-quick-actions
 # On-demand tools: no installer, run from the clone when needed.
-clone_if_missing doc-convert         || true
-clone_if_missing vcard-merge         || true
-# Knowledge.
-clone_if_missing setup-docs          || true
+clone_if_missing doc-convert
+clone_if_missing vcard-merge
+# Knowledge, and the convention it follows.
+clone_if_missing setup-docs
+clone_if_missing agent-memory
 # Transport for stage 7; cloned here so the repo list is complete either way.
-clone_if_missing git-autosync        || true
+clone_if_missing git-autosync
 
 # --- Stage 3: wire the config -------------------------------------------
 # Each repo installs itself; this script only calls.
 echo "==> [3/7] Wiring config"
 
 if [ -f "$HOME/vc/machine-config/install.sh" ]; then
-  zsh "$HOME/vc/machine-config/install.sh"
+  zsh "$HOME/vc/machine-config/install.sh" || echo "!! machine-config/install.sh reported errors — see above" >&2
 else
   echo "!! ~/vc/machine-config/install.sh missing — git identity, aliases and the" >&2
   echo "   autosync repo list are NOT wired up" >&2
@@ -120,7 +123,7 @@ echo "==> [4/7] Apps and packages"
 
 BREWFILE="$HOME/vc/machine-config/Brewfile"
 if [ -f "$BREWFILE" ]; then
-  brew bundle --file="$BREWFILE"
+  brew bundle --file="$BREWFILE" || echo "!! brew bundle reported errors — one unavailable cask is enough" >&2
 else
   echo "!! $BREWFILE missing — no apps installed" >&2
 fi
@@ -150,7 +153,7 @@ echo "==> [5/7] Tools"
 # application that holds the Accessibility grant for the Control Center
 # hotkey. Granting that permission and binding the key stay manual.
 if [ -f "$HOME/vc/macos-quick-actions/install.sh" ]; then
-  "$HOME/vc/macos-quick-actions/install.sh"
+  "$HOME/vc/macos-quick-actions/install.sh" || echo "!! macos-quick-actions/install.sh reported errors — see above" >&2
 else
   echo "!! ~/vc/macos-quick-actions/install.sh missing — Finder services not installed" >&2
 fi
@@ -167,7 +170,7 @@ echo "==> [6/7] Preferences"
 if [ -d "$HOME/vc/macprefs" ]; then
   chmod +x "$HOME/vc/macprefs/macprefs.sh" "$HOME/vc/macprefs/install-snapshot-agent.sh" 2>/dev/null || true
   echo "    macprefs ready. To restore this Mac's settings, run deliberately:"
-  echo "      ~/vc/macprefs/macprefs.sh import"
+  echo "      ~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps"
   echo "    and then, to keep snapshots current:"
   echo "      ~/vc/macprefs/install-snapshot-agent.sh"
 else
@@ -185,16 +188,26 @@ if [ "$SKIP_TRANSPORT" -eq 1 ]; then
 else
   echo "==> [7/7] Transport (optional)"
   if [ -f "$HOME/vc/git-autosync/install.sh" ]; then
-    "$HOME/vc/git-autosync/install.sh"
+    "$HOME/vc/git-autosync/install.sh" || echo "!! git-autosync/install.sh reported errors — the agents may not be running" >&2
   else
     echo "!! ~/vc/git-autosync/install.sh missing — commits will not publish themselves" >&2
   fi
 fi
 
 # --- Manual steps -------------------------------------------------------
+#
+# Every stage above reports its own errors and lets the run continue, so
+# that this closing checklist is always printed. The exit code, not the
+# word "Done", is what says whether the run was clean.
+if [ -n "$failed_clones" ]; then
+  echo >&2
+  echo "!! These repos were NOT cloned:$failed_clones" >&2
+  echo "   Everything that reads them was skipped or ran incomplete." >&2
+fi
+
 cat <<'EOF'
 
-==> Done. Remaining manual steps (see setup-procedures.md, step A10):
+==> Finished. Remaining manual steps (see setup-procedures.md, step A10):
   - Sign in: iCloud, OneDrive, WhatsApp (QR code), Chrome, Claude
   - Claude in Chrome extension: install from Chrome
   - Claude add-ins for Word/Excel: install from within Word/Excel
@@ -213,3 +226,8 @@ cat <<'EOF'
   launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
 EOF
+
+if [ -n "$failed_clones" ]; then
+  echo "==> Finished WITH ERRORS: could not clone$failed_clones" >&2
+  exit 1
+fi
