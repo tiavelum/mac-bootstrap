@@ -40,6 +40,16 @@ echo "==> Mac setup bootstrap"
 
 echo "==> [1/7] Preconditions"
 
+# Xcode command line tools: git itself comes from here on a bare machine,
+# and Homebrew's own installer needs them too. The install is a GUI dialog,
+# so the script cannot wait it out — it stops and asks you to come back.
+if ! xcode-select -p >/dev/null 2>&1; then
+  echo "    Xcode command line tools missing"
+  xcode-select --install 2>/dev/null || true
+  echo "!! A macOS dialog has opened. Finish that install, then re-run this script." >&2
+  exit 1
+fi
+
 if ! command -v brew >/dev/null 2>&1; then
   echo "    installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -80,8 +90,8 @@ clone_if_missing() {
   fi
 }
 
-# dotfiles first: it carries the config every later stage reads.
-clone_if_missing dotfiles            || true
+# machine-config first: it carries the config every later stage reads.
+clone_if_missing machine-config      || true
 # Tools that install or are invoked by later stages.
 clone_if_missing macprefs            || true   # stage 6 needs the tool
 clone_if_missing macprefs-config     || true   # ... and its snapshots
@@ -98,24 +108,24 @@ clone_if_missing git-autosync        || true
 # Each repo installs itself; this script only calls.
 echo "==> [3/7] Wiring config"
 
-if [ -f "$HOME/vc/dotfiles/install.sh" ]; then
-  zsh "$HOME/vc/dotfiles/install.sh"
+if [ -f "$HOME/vc/machine-config/install.sh" ]; then
+  zsh "$HOME/vc/machine-config/install.sh"
 else
-  echo "!! ~/vc/dotfiles/install.sh missing — git identity, aliases and the" >&2
+  echo "!! ~/vc/machine-config/install.sh missing — git identity, aliases and the" >&2
   echo "   autosync repo list are NOT wired up" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
 echo "==> [4/7] Apps and packages"
 
-BREWFILE="$HOME/vc/dotfiles/Brewfile"
+BREWFILE="$HOME/vc/machine-config/Brewfile"
 if [ -f "$BREWFILE" ]; then
   brew bundle --file="$BREWFILE"
 else
   echo "!! $BREWFILE missing — no apps installed" >&2
 fi
 
-EXTENSIONS="$HOME/vc/dotfiles/vscode-extensions"
+EXTENSIONS="$HOME/vc/machine-config/vscode-extensions"
 if [ -f "$EXTENSIONS" ] && command -v code >/dev/null 2>&1; then
   echo "    VS Code extensions"
   sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$EXTENSIONS" | while IFS= read -r ext || [ -n "$ext" ]; do
@@ -129,6 +139,9 @@ fi
 # --- Stage 5: tools that install themselves -----------------------------
 echo "==> [5/7] Tools"
 
+# Installs the Finder services and builds Control Center Toggle.app, the
+# application that holds the Accessibility grant for the Control Center
+# hotkey. Granting that permission and binding the key stay manual.
 if [ -f "$HOME/vc/macos-quick-actions/install.sh" ]; then
   "$HOME/vc/macos-quick-actions/install.sh"
 else
@@ -182,13 +195,14 @@ cat <<'EOF'
   - Claude <-> GitHub connector: install AND authorize (two separate acts)
   - Logi Options+: reboot, then assign the MX Keys screenshot key
   - Maccy: launch at login, history size, hotkey
-  - Control Center Toggle.app: build, place, launch once, grant Accessibility
+  - Control Center Toggle.app: built by stage 5 — launch it once, grant
+    Accessibility, then bind a key to it in Shortcuts
   - Passwords app: syncs via Apple account automatically
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
   git config user.email                    # from dotfiles/gitconfig
-  readlink ~/.config/git-autosync/repos    # -> ~/vc/dotfiles/git-autosync-repos
+  readlink ~/.config/git-autosync/repos    # -> ~/vc/machine-config/git-autosync-repos
   launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
 EOF
