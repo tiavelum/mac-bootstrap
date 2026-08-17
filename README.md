@@ -69,6 +69,27 @@ When it breaks, read the output, fix the script here, and re-run in the guest �
 or delete the guest and start clean. Snapshot the guest right after the OS
 install so "start clean" costs seconds.
 
+**When you are done, revoke what the guest was given.** `gh auth login` in the
+guest uploaded an SSH key to your GitHub account and authorised a device;
+deleting the VM does not undo either. Remove the key at github.com →
+Settings → SSH and GPG keys (titled "GitHub CLI", dated the day you tested)
+and, to be thorough, the device under Settings → Applications → Authorized
+GitHub Apps → GitHub CLI. Also note that stage 7 makes the guest's sync
+agents live with your credentials: harmless while it has nothing to commit,
+but a reason not to leave a test guest running for weeks.
+
+**What the first real run taught** (2026-08-17, from a bare guest): the
+script reached all seven stages and its errors were all visible, which is
+what mattered. Six things were wrong, all fixed the same day: Homebrew's
+installer prompted for Return (now `NONINTERACTIVE`); Homebrew was on the
+script's PATH but not the user's, so the very next command after "run
+`gh auth login`" was *command not found* (now written to `~/.zprofile`);
+first SSH contact with github.com stopped mid-clone to ask for trust (now
+pre-trusted); a single flaky download aborted the whole `brew bundle` (now
+retried once); `code` was looked up on PATH before VS Code had put it there
+(now called inside the app bundle); and this repository itself was never
+cloned. Fifteen minutes of running found what three careful readings had not.
+
 Cheaper still, for the per-user stages only, is a fresh user account on this
 Mac (System Settings → Users & Groups). Everything from stage 2 onward is
 per-user, so it is a good imitation of a fresh machine — but it shares

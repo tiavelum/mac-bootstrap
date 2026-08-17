@@ -87,12 +87,29 @@ if ! xcode-select -p >/dev/null 2>&1; then
   fi
 fi
 
+# brew_env: put Homebrew on this shell's PATH, and on every future shell's.
+# Two things went wrong on the first real run without this: Homebrew's own
+# installer prints "add this to your .zprofile" and the script ignored it,
+# so the moment the script exited, gh (and later code) were "not found" in
+# the very shell the user was left in. And it exited to ask for a login,
+# so that was the first thing they typed.
+brew_env() {
+  local line='eval "$(/opt/homebrew/bin/brew shellenv)"'
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  if ! grep -qsF 'brew shellenv' "$HOME/.zprofile"; then
+    run sh -c "printf '\n# Homebrew (written by bootstrap.sh)\n%s\n' '$line' >> \"$HOME/.zprofile\""
+  fi
+}
+
 if ! command -v brew >/dev/null 2>&1; then
   echo "    installing Homebrew..."
-  run /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  [ "$DRY_RUN" -eq 1 ] || eval "$(/opt/homebrew/bin/brew shellenv)"   # Apple Silicon path
+  # NONINTERACTIVE: skip the "press RETURN to continue" prompt. It has no
+  # decision behind it, and it turned an unattended stage into a babysat one.
+  run env NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  [ "$DRY_RUN" -eq 1 ] || brew_env
 else
   echo "    Homebrew already installed"
+  [ "$DRY_RUN" -eq 1 ] || brew_env
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -107,6 +124,9 @@ if ! gh auth status >/dev/null 2>&1; then
 
      gh auth login
 
+   (If that says "command not found", open a new Terminal window first —
+    this run has just put Homebrew on the PATH of future shells.)
+
 EOF
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "    [dry-run] would stop here; continuing to show the rest"
@@ -118,6 +138,15 @@ fi
 # --- Stage 2: clone -----------------------------------------------------
 echo "==> [2/7] Cloning repos into ~/vc"
 run mkdir -p "$HOME/vc"
+
+# First contact with github.com over SSH asks "are you sure you want to
+# continue connecting?" — once per machine, and always in the middle of a
+# fresh bootstrap. Trust GitHub's published host key up front instead.
+if ! grep -qs "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
+  run mkdir -p "$HOME/.ssh"
+  run sh -c "ssh-keyscan -t ed25519 github.com 2>/dev/null >> \"$HOME/.ssh/known_hosts\""
+  echo "    github.com added to known_hosts"
+fi
 
 failed_clones=""
 would_clone=""
@@ -148,6 +177,10 @@ clone_if_missing setup-docs
 clone_if_missing agent-memory
 # Transport for stage 7; cloned here so the repo list is complete either way.
 clone_if_missing git-autosync
+# This repository itself. On a brand-new Mac this script is run from a
+# browser download, so nothing has cloned it yet — and the sync list names
+# it, so the transport would otherwise warn about it forever.
+clone_if_missing mac-bootstrap
 
 # have: true if the file exists — or, in a dry run, if it lives in a repo
 # that the dry run would have cloned. Lets the later stages describe what
@@ -176,21 +209,38 @@ echo "==> [4/7] Apps and packages"
 
 BREWFILE="$HOME/vc/machine-config/Brewfile"
 if have "$BREWFILE"; then
-  run brew bundle --file="$BREWFILE" || echo "!! brew bundle reported errors — one unavailable cask is enough" >&2
+  # brew bundle stops at the first failure by default, so one server having
+  # a bad minute (WhatsApp's returned a 500 on the first real run) left
+  # everything after it uninstalled — and the steps that depend on those
+  # tools then failed too. --no-lock is harmless; the retry loop below is
+  # what matters: a second pass installs whatever the first one skipped,
+  # and only what is still missing after that counts as an error.
+  if ! run brew bundle --file="$BREWFILE" --no-lock; then
+    echo "    brew bundle did not complete — retrying once for anything a flaky download skipped"
+    run brew bundle --file="$BREWFILE" --no-lock \
+      || echo "!! brew bundle still reports errors — see the ✘ lines above; re-run later for those" >&2
+  fi
+  # A cask installed a moment ago is not on this shell's PATH yet.
+  [ "$DRY_RUN" -eq 1 ] || eval "$(/opt/homebrew/bin/brew shellenv)"
 else
   echo "!! $BREWFILE missing — no apps installed" >&2
 fi
 
+# `code` is not on PATH until VS Code itself installs its shell command,
+# which needs the app opened once. The binary is inside the bundle from the
+# moment the cask lands, so use that path and skip the chicken-and-egg.
+CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+command -v code >/dev/null 2>&1 && CODE="$(command -v code)"
 EXTENSIONS="$HOME/vc/machine-config/vscode-extensions"
-if have "$EXTENSIONS" && command -v code >/dev/null 2>&1; then
+if have "$EXTENSIONS" && { [ -x "$CODE" ] || [ "$DRY_RUN" -eq 1 ]; }; then
   echo "    VS Code extensions"
   [ -f "$EXTENSIONS" ] || echo "    [dry-run] would install each id listed in $EXTENSIONS"
   [ -f "$EXTENSIONS" ] && sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$EXTENSIONS" | while IFS= read -r ext || [ -n "$ext" ]; do
     [ -n "$ext" ] || continue
-    run code --install-extension "$ext" --force
+    run "$CODE" --install-extension "$ext" --force
   done
 elif have "$EXTENSIONS"; then
-  echo "!! 'code' not on PATH — open VS Code once, then re-run" >&2
+  echo "!! VS Code not found at $CODE — was the cask installed? Re-run after it is." >&2
 fi
 
 # Default applications, last in this stage: the bindings name applications
