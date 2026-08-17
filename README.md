@@ -15,6 +15,52 @@ cd ~/vc/mac-bootstrap && ./bootstrap.sh        # --skip-transport to leave stage
 `bootstrap.sh` is the entry point. It installs Homebrew and `gh` itself if they
 are missing, and stops with instructions if you are not authenticated.
 
+## Try it first: `--dry-run`
+
+```zsh
+./bootstrap.sh --dry-run
+```
+
+Prints every command that would change the machine instead of running it, and
+changes nothing — safe on a Mac you care about. The checks still run for real,
+so the output shows which stages *would* fire on this machine and which are
+already satisfied. On an empty machine it narrates all seven stages; on a
+finished one it says "already" at each.
+
+What it cannot tell you: whether the commands *succeed*. For that there is
+only one honest test, and it is not this Mac.
+
+## Test it for real: a throwaway machine
+
+The script has to be exercised on a machine that starts from nothing — that is
+the only run that tests what it exists for, and the only one that can go wrong
+without costing anything. **Never test it on your working Mac**: it would
+tell you almost nothing (everything is already there) and it can still change
+things (rebuild the hotkey app, upgrade casks).
+
+A macOS virtual machine is the cheapest fresh machine. On Apple Silicon:
+
+```zsh
+brew install --cask utm
+```
+
+UTM → **Create a New Virtual Machine → Virtualize → macOS 12+** downloads
+Apple's own recovery image and installs a clean guest. Give it 60 GB and
+half your RAM; the first boot walks the normal macOS setup. Then, inside the
+guest, sign in to iCloud only if you want to test that path — otherwise skip
+it — open Terminal and run the block under **Run it** above. `gh auth login`
+inside the guest is a real login: use the browser flow, or paste a token you
+revoke afterwards.
+
+When it breaks, read the output, fix the script here, and re-run in the guest —
+or delete the guest and start clean. Snapshot the guest right after the OS
+install so "start clean" costs seconds.
+
+Cheaper still, for the per-user stages only, is a fresh user account on this
+Mac (System Settings → Users & Groups). Everything from stage 2 onward is
+per-user, so it is a good imitation of a fresh machine — but it shares
+Homebrew and the Xcode tools with your account, so it does not test stage 1.
+
 ## The seven stages
 
 ```

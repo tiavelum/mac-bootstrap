@@ -14,20 +14,42 @@
 # Claude sessions working in these clones, and the macprefs snapshot
 # agent publishing its snapshots.
 #
-# Usage: ./bootstrap.sh [--skip-transport]
+# Usage: ./bootstrap.sh [--dry-run] [--skip-transport]
+#
+#   --dry-run   print every command that would change the machine instead of
+#               running it. Checks still run for real, so the output shows
+#               which stages *would* fire on this machine and which are
+#               already satisfied. Safe on a Mac you care about.
 
 set -e
 
 SKIP_TRANSPORT=0
+DRY_RUN=0
 for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    --dry-run)        DRY_RUN=1 ;;
+    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 
-echo "==> Mac setup bootstrap"
+# run: execute a command, or in a dry run print it and pretend it succeeded.
+# Everything that changes the machine goes through this; the checks that
+# only read state do not, so a dry run still reflects the real machine.
+run() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] $*"
+    return 0
+  fi
+  "$@"
+}
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "==> Mac setup bootstrap — DRY RUN, nothing will be changed"
+else
+  echo "==> Mac setup bootstrap"
+fi
 
 # --- Stage 1: preconditions ---------------------------------------------
 # Everything below is cloned from private repos, so both of these must be
@@ -45,22 +67,26 @@ echo "==> [1/7] Preconditions"
 # so the script cannot wait it out — it stops and asks you to come back.
 if ! xcode-select -p >/dev/null 2>&1; then
   echo "    Xcode command line tools missing"
-  xcode-select --install 2>/dev/null || true
-  echo "!! A macOS dialog has opened. Finish that install, then re-run this script." >&2
-  exit 1
+  run xcode-select --install
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] would stop here until the install finishes; continuing to show the rest"
+  else
+    echo "!! A macOS dialog has opened. Finish that install, then re-run this script." >&2
+    exit 1
+  fi
 fi
 
 if ! command -v brew >/dev/null 2>&1; then
   echo "    installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"   # Apple Silicon path
+  run /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  [ "$DRY_RUN" -eq 1 ] || eval "$(/opt/homebrew/bin/brew shellenv)"   # Apple Silicon path
 else
   echo "    Homebrew already installed"
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "    installing gh..."
-  brew install gh
+  run brew install gh
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
@@ -71,21 +97,26 @@ if ! gh auth status >/dev/null 2>&1; then
      gh auth login
 
 EOF
-  exit 1
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] would stop here; continuing to show the rest"
+  else
+    exit 1
+  fi
 fi
 
 # --- Stage 2: clone -----------------------------------------------------
 echo "==> [2/7] Cloning repos into ~/vc"
-mkdir -p "$HOME/vc"
+run mkdir -p "$HOME/vc"
 
 failed_clones=""
+would_clone=""
 
 clone_if_missing() {
   dest="$HOME/vc/$1"
   if [ -d "$dest/.git" ]; then
     echo "    $1 already cloned"
-  elif git clone --quiet "git@github.com:tiavelum/$1.git" "$dest"; then
-    echo "    cloned $1"
+  elif run git clone --quiet "git@github.com:tiavelum/$1.git" "$dest"; then
+    if [ "$DRY_RUN" -eq 1 ]; then would_clone="$would_clone $1"; else echo "    cloned $1"; fi
   else
     echo "!! could not clone $1" >&2
     failed_clones="$failed_clones $1"
@@ -107,12 +138,23 @@ clone_if_missing agent-memory
 # Transport for stage 7; cloned here so the repo list is complete either way.
 clone_if_missing git-autosync
 
+# have: true if the file exists — or, in a dry run, if it lives in a repo
+# that the dry run would have cloned. Lets the later stages describe what
+# they would do on a fresh machine instead of reporting everything missing.
+have() {
+  [ -f "$1" ] && return 0
+  [ "$DRY_RUN" -eq 1 ] || return 1
+  repo="${1#$HOME/vc/}"; repo="${repo%%/*}"
+  case " $would_clone " in *" $repo "*) return 0 ;; esac
+  return 1
+}
+
 # --- Stage 3: wire the config -------------------------------------------
 # Each repo installs itself; this script only calls.
 echo "==> [3/7] Wiring config"
 
-if [ -f "$HOME/vc/machine-config/install.sh" ]; then
-  zsh "$HOME/vc/machine-config/install.sh" || echo "!! machine-config/install.sh reported errors — see above" >&2
+if have "$HOME/vc/machine-config/install.sh"; then
+  run zsh "$HOME/vc/machine-config/install.sh" || echo "!! machine-config/install.sh reported errors — see above" >&2
 else
   echo "!! ~/vc/machine-config/install.sh missing — git identity, aliases and the" >&2
   echo "   autosync repo list are NOT wired up" >&2
@@ -122,28 +164,29 @@ fi
 echo "==> [4/7] Apps and packages"
 
 BREWFILE="$HOME/vc/machine-config/Brewfile"
-if [ -f "$BREWFILE" ]; then
-  brew bundle --file="$BREWFILE" || echo "!! brew bundle reported errors — one unavailable cask is enough" >&2
+if have "$BREWFILE"; then
+  run brew bundle --file="$BREWFILE" || echo "!! brew bundle reported errors — one unavailable cask is enough" >&2
 else
   echo "!! $BREWFILE missing — no apps installed" >&2
 fi
 
 EXTENSIONS="$HOME/vc/machine-config/vscode-extensions"
-if [ -f "$EXTENSIONS" ] && command -v code >/dev/null 2>&1; then
+if have "$EXTENSIONS" && command -v code >/dev/null 2>&1; then
   echo "    VS Code extensions"
-  sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$EXTENSIONS" | while IFS= read -r ext || [ -n "$ext" ]; do
+  [ -f "$EXTENSIONS" ] || echo "    [dry-run] would install each id listed in $EXTENSIONS"
+  [ -f "$EXTENSIONS" ] && sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$EXTENSIONS" | while IFS= read -r ext || [ -n "$ext" ]; do
     [ -n "$ext" ] || continue
-    code --install-extension "$ext" --force
+    run code --install-extension "$ext" --force
   done
-elif [ -f "$EXTENSIONS" ]; then
+elif have "$EXTENSIONS"; then
   echo "!! 'code' not on PATH — open VS Code once, then re-run" >&2
 fi
 
 # Default applications, last in this stage: the bindings name applications
 # that must already exist, and duti itself comes from the Brewfile above.
 DEFAULTS="$HOME/vc/machine-config/apply-default-apps.sh"
-if [ -f "$DEFAULTS" ]; then
-  "$DEFAULTS" || echo "!! default applications not fully applied — see above" >&2
+if have "$DEFAULTS"; then
+  run "$DEFAULTS" || echo "!! default applications not fully applied — see above" >&2
 fi
 
 # --- Stage 5: tools that install themselves -----------------------------
@@ -152,8 +195,8 @@ echo "==> [5/7] Tools"
 # Installs the Finder services and builds Control Center Toggle.app, the
 # application that holds the Accessibility grant for the Control Center
 # hotkey. Granting that permission and binding the key stay manual.
-if [ -f "$HOME/vc/macos-quick-actions/install.sh" ]; then
-  "$HOME/vc/macos-quick-actions/install.sh" || echo "!! macos-quick-actions/install.sh reported errors — see above" >&2
+if have "$HOME/vc/macos-quick-actions/install.sh"; then
+  run "$HOME/vc/macos-quick-actions/install.sh" || echo "!! macos-quick-actions/install.sh reported errors — see above" >&2
 else
   echo "!! ~/vc/macos-quick-actions/install.sh missing — Finder services not installed" >&2
 fi
@@ -167,8 +210,8 @@ fi
 # explicit command.
 echo "==> [6/7] Preferences"
 
-if [ -d "$HOME/vc/macprefs" ]; then
-  chmod +x "$HOME/vc/macprefs/macprefs.sh" "$HOME/vc/macprefs/install-snapshot-agent.sh" 2>/dev/null || true
+if have "$HOME/vc/macprefs/macprefs.sh"; then
+  run chmod +x "$HOME/vc/macprefs/macprefs.sh" "$HOME/vc/macprefs/install-snapshot-agent.sh" || true
   echo "    macprefs ready. To restore this Mac's settings, run deliberately:"
   echo "      ~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps"
   echo "    and then, to keep snapshots current:"
@@ -187,8 +230,8 @@ if [ "$SKIP_TRANSPORT" -eq 1 ]; then
   echo "    Enable later with: ~/vc/git-autosync/install.sh"
 else
   echo "==> [7/7] Transport (optional)"
-  if [ -f "$HOME/vc/git-autosync/install.sh" ]; then
-    "$HOME/vc/git-autosync/install.sh" || echo "!! git-autosync/install.sh reported errors — the agents may not be running" >&2
+  if have "$HOME/vc/git-autosync/install.sh"; then
+    run "$HOME/vc/git-autosync/install.sh" || echo "!! git-autosync/install.sh reported errors — the agents may not be running" >&2
   else
     echo "!! ~/vc/git-autosync/install.sh missing — commits will not publish themselves" >&2
   fi
@@ -231,3 +274,6 @@ if [ -n "$failed_clones" ]; then
   echo "==> Finished WITH ERRORS: could not clone$failed_clones" >&2
   exit 1
 fi
+
+[ "$DRY_RUN" -eq 1 ] && echo "==> DRY RUN complete — nothing was changed."
+exit 0
