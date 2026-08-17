@@ -3,22 +3,73 @@
 Bootstrap for a fresh MacBook Air. **Orchestration only** — this repo owns
 no configuration and no mechanisms of its own.
 
-## Run it on a brand-new Mac
+## Run it on a brand-new Mac — the walkthrough
 
-A fresh machine has no `git` and no GitHub login, so this repo cannot be
-cloned yet — and every repo the script needs is private. The way in is the
-browser: open this repo on GitHub → `bootstrap.sh` → **Raw** → save it to
-Downloads. Then in Terminal, paste exactly:
+You will paste one line three times. The script stops twice, for the two
+things no script can do — accept Apple's licence for the developer tools,
+and prove to GitHub that you are you — and continues from where it stopped.
+Everything else is automatic. Budget 20–40 minutes, most of it downloads.
+
+**Before you start.** A fresh Mac has no `git` and no GitHub login, so this
+repository cannot be cloned yet. Open Safari → `github.com/tiavelum/mac-bootstrap`
+→ `bootstrap.sh` → **Raw** → save it to Downloads. Then open Terminal
+(Spotlight → "Terminal") and paste:
 
 ```zsh
 zsh $HOME/Downloads/bootstrap.sh
 ```
 
-(`$HOME` is the same as `~`, and it is on every keyboard.) Stage 1 installs
-the Xcode command-line tools, Homebrew and `gh`, then stops and tells you to
-run `gh auth login` — choose SSH and the browser flow. Paste the same line
-again and it runs through all seven stages; the copy of this repo it clones
-into `~/vc` is the one you keep.
+`$HOME` means `~` and is on every keyboard.
+
+**Run 1 — the developer tools.** The script stops immediately:
+`Xcode command line tools missing`. A macOS dialog opens (if you cannot see
+it, it is behind the Terminal window). Click **Install**, accept the licence,
+wait — it is a couple of gigabytes. When it says done, paste the same line
+again.
+
+**Run 2 — Homebrew, gh, and your login.** The script installs Homebrew
+(asks for your Mac password once, then no further questions) and `gh`, then
+stops: `Not authenticated with GitHub`. In the **same** Terminal window,
+type:
+
+```zsh
+gh auth login
+```
+
+Answer the prompts: **GitHub.com** → **SSH** → **Yes**, generate a new key
+→ passphrase: on a real Mac give one (it is stored in the keychain, you type
+it once); on a throwaway VM leave it empty → title: just press Enter →
+**Login with a web browser**.
+
+It then prints an eight-character code — `XXXX-XXXX` — and says *press
+Enter to open github.com in your browser*. **Write the code down before you
+press Enter.** Safari opens on top of the Terminal and the code stays behind
+it. Type the code into the GitHub page, click Authorize, and when it says
+"Congratulations, you're all set", go back to Terminal and paste the script
+line a third time.
+
+**Run 3 — everything else.** All seven stages, unattended: nine repositories
+cloned into `~/vc`, git identity and aliases wired, every app in the Brewfile
+installed, Finder actions and the hotkey app built, preferences readied,
+sync agents loaded. It ends with `==> Finished`, a list of the sign-ins that
+remain, and a short verify block.
+
+**Reading the result.** Every problem the script sees is printed with a
+leading `!!`. No `!!` anywhere means the run was clean. If there are some,
+each says what to do; fix it and paste the line once more — the script is
+safe to repeat, it skips what is already done. A `✘` from `brew bundle` is
+usually a download that failed on the vendor's side; the script retries once
+and, if it still fails, names it so you can `brew install` it later.
+
+**After it finishes — the manual steps.** These need a person and a screen,
+in this order: sign in to iCloud; open the Passwords app so it syncs; open
+VS Code once and sign in to Claude Code; launch `Control Center Toggle.app`
+once, grant Accessibility when asked, then bind a key to it in Shortcuts;
+reboot before assigning the MX Keys screenshot key in Logi Options+; then
+the app sign-ins (Chrome, WhatsApp by QR code, OneDrive, Claude). Preference
+import is deliberate and never automatic:
+`~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps`.
+The full list with detail is procedures A10 in `setup-docs`.
 
 ## Run it again later
 

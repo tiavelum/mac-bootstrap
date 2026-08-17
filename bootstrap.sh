@@ -21,16 +21,49 @@
 #               which stages *would* fire on this machine and which are
 #               already satisfied. Safe on a Mac you care about.
 #
-# ON A BRAND-NEW MAC there is no git and no GitHub login yet, so this file
-# cannot be cloned — fetch it through the browser instead: GitHub ->
-# mac-bootstrap -> bootstrap.sh -> Raw -> save to Downloads. Then, in
-# Terminal, paste exactly this (no tilde needed — $HOME is the same thing
-# and is on every keyboard):
+# ══════════════════════════════════════════════════════════════════════════
+# RUNNING THIS ON A BRAND-NEW MAC — the whole procedure, nothing else needed
+# ══════════════════════════════════════════════════════════════════════════
+#
+# A new Mac has no git and no GitHub login, so this file cannot be cloned.
+# Get it through the browser: github.com/tiavelum/mac-bootstrap →
+# bootstrap.sh → "Raw" → save to Downloads. Then open Terminal and paste
+# this ($HOME means ~ and is on every keyboard):
 #
 #     zsh $HOME/Downloads/bootstrap.sh
 #
-# Stage 1 installs Homebrew and gh, then stops and tells you to log in.
-# Log in, paste the same line again, and it runs through.
+# You will paste that same line THREE times. The script stops twice for
+# things only a person can do, tells you what, and picks up where it left
+# off. Expected sequence:
+#
+#   1st run  → stops at once: "Xcode command line tools missing".
+#              A macOS dialog opens. Click Install, accept the licence,
+#              wait for the download (a few minutes). Paste the line again.
+#
+#   2nd run  → installs Homebrew (asks for your Mac password once) and gh,
+#              then stops: "Not authenticated with GitHub". In the SAME
+#              window, type:
+#
+#                  gh auth login
+#
+#              Answer: GitHub.com → SSH → Yes, generate a key → (passphrase
+#              optional; on a real Mac give one, it is stored in the
+#              keychain) → title: press Enter → Login with a web browser.
+#              It shows an 8-character CODE like XXXX-XXXX and says press
+#              Enter to open the browser. WRITE THE CODE DOWN FIRST — Safari
+#              opens on top of this window and the code stays behind it.
+#              Type the code into GitHub, Authorize, come back to Terminal.
+#              Paste the line a third time.
+#
+#   3rd run  → runs all seven stages unattended. Takes a while: it downloads
+#              every app in the Brewfile. Ends with "Finished", a list of
+#              the manual sign-ins that remain, and a verify block.
+#
+# Every problem the script sees is printed with a leading "!!". If you see
+# none, the run was clean. If you see some, read them — they say what to
+# do — and paste the line once more; the script is safe to repeat.
+#
+# Try it without changing anything:   zsh $HOME/Downloads/bootstrap.sh --dry-run
 
 set -e
 
@@ -40,7 +73,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,66p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
