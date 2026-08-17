@@ -102,23 +102,32 @@ without costing anything. **Never test it on your working Mac**: it would
 tell you almost nothing (everything is already there) and it can still change
 things (rebuild the hotkey app, upgrade casks).
 
-A macOS virtual machine is the cheapest fresh machine. On Apple Silicon:
+A macOS virtual machine is the cheapest fresh machine. UTM is in the
+Brewfile, so a bootstrapped Mac already has it; otherwise
+`brew install --cask utm`.
 
-```zsh
-brew install --cask utm
-```
+**Create the guest.** UTM → **Create a New Virtual Machine → Virtualize →
+macOS 12+**. It downloads Apple's own recovery image and installs a clean
+guest. Give it 60 GB and half your RAM. **Leave sharing off** — no shared
+folder, no shared clipboard: a guest that can see your `~/vc` is not a bare
+machine, and the test is worthless. First boot walks the normal macOS
+setup; make a local user, skip iCloud.
 
-UTM → **Create a New Virtual Machine → Virtualize → macOS 12+** downloads
-Apple's own recovery image and installs a clean guest. Give it 60 GB and
-half your RAM; the first boot walks the normal macOS setup. Then, inside the
-guest, sign in to iCloud only if you want to test that path — otherwise skip
-it — open Terminal and run the block under **Run it** above. `gh auth login`
-inside the guest is a real login: use the browser flow, or paste a token you
-revoke afterwards.
+**Snapshot it before you type anything.** Stop the guest, then in UTM's
+sidebar right-click it → snapshot, name it `clean`. That is the reset
+button, and it is the step that gets skipped: without it, "start over"
+means reinstalling macOS, which is an hour, not a minute. Do it now.
 
-When it breaks, read the output, fix the script here, and re-run in the guest —
-or delete the guest and start clean. Snapshot the guest right after the OS
-install so "start clean" costs seconds.
+**Run the walkthrough** at the top of this file inside the guest — browser,
+Raw, Downloads, three pastes. `gh auth login` in the guest is a real login
+to your real account: browser flow, empty passphrase is fine.
+
+**When it breaks:** read the `!!` lines, fix the script here, push, restore
+`clean`, run again. That loop is what the snapshot buys.
+
+**When to test again:** whenever `bootstrap.sh`, the Brewfile, or one of the
+installers it calls has changed since the last clean run. A script that
+changed is untested again, however small the change looked.
 
 **When you are done, revoke what the guest was given.** `gh auth login` in the
 guest uploaded an SSH key to your GitHub account and authorised a device;
