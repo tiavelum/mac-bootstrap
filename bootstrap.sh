@@ -116,7 +116,7 @@ echo "==> [1/7] Preconditions"
 # create /opt/homebrew, and it fails one stage in, in its own words, if not.
 # A fresh Mac's first account is always an admin, so a real rebuild never
 # sees this - but a second account, or a VM whose setup wizard was clicked
-# through fast, can be a standard user. Found on the second VM run.
+# through fast, can be a standard user.
 if ! groups 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
   cat >&2 <<'EOF'
 !! This user is not an administrator, and Homebrew cannot install without one.
@@ -136,7 +136,7 @@ fi
 # person expects it - and cache it - rather than letting the installer ask.
 # Setting NONINTERACTIVE for the installer (to skip its "press RETURN")
 # also stops it asking for the password, and it then fails as "need sudo
-# access" even for an administrator. Found on the second VM run.
+# access" even for an administrator.
 if ! sudo -n true 2>/dev/null; then
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "    [dry-run] sudo -v   (would ask for your Mac password once)"
@@ -145,11 +145,10 @@ if ! sudo -n true 2>/dev/null; then
     sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
   fi
 fi
-# "Once" has to be made true: sudo forgets the password after five minutes
-# and the app downloads in stage 4 take longer, so casks with privileged
-# installers (OneDrive, Logi Options+) asked again mid-run - the third VM run
-# showed four prompts. Refresh the credential every minute in the background
-# for as long as this script lives; the loop ends by itself when it is gone.
+# "Once" has to be made true: sudo forgets the password after five minutes,
+# stage 4 takes longer, and casks with privileged installers (OneDrive, Logi
+# Options+) would ask again. Refresh the credential every minute in the
+# background for as long as this script lives; the loop ends with it.
 if [ "$DRY_RUN" -eq 0 ]; then
   ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
   SUDO_KEEPALIVE=$!
@@ -171,11 +170,9 @@ if ! xcode-select -p >/dev/null 2>&1; then
 fi
 
 # brew_env: put Homebrew on this shell's PATH, and on every future shell's.
-# Two things went wrong on the first real run without this: Homebrew's own
-# installer prints "add this to your .zprofile" and the script ignored it,
-# so the moment the script exited, gh (and later code) were "not found" in
-# the very shell the user was left in. And it exited to ask for a login,
-# so that was the first thing they typed.
+# Homebrew's installer only prints "add this to your .zprofile"; without
+# doing it here, gh (and later code) are "not found" in the very shell the
+# user is left in - and the first thing they are asked to type is gh.
 brew_env() {
   local line='eval "$(/opt/homebrew/bin/brew shellenv)"'
   eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -288,13 +285,11 @@ echo "==> [4/7] Apps and packages"
 
 BREWFILE="$HOME/vc/mac-config/Brewfile"
 if have "$BREWFILE"; then
-  # brew bundle stops at the first failure by default, so one server having
-  # a bad minute (WhatsApp's returned a 500 on the first real run) left
-  # everything after it uninstalled — and the steps that depend on those
-  # tools then failed too. The retry loop below is what matters: a second
-  # pass installs whatever the first one skipped, and only what is still
-  # missing after that counts as an error. (No extra flags: the third VM
-  # run showed that a flag brew does not know aborts the whole bundle.)
+  # brew bundle stops at the first failure, so one server having a bad
+  # minute would leave everything after it uninstalled — and the steps that
+  # depend on those tools would fail too. So: a second pass installs
+  # whatever the first one skipped, and only what is still missing after
+  # that counts as an error.
   if ! run brew bundle --file="$BREWFILE"; then
     echo "    brew bundle did not complete — retrying once for anything a flaky download skipped"
     run brew bundle --file="$BREWFILE" \
