@@ -100,7 +100,9 @@ brew_env() {
   fi
 }
 
-if ! command -v brew >/dev/null 2>&1; then
+# By path, not PATH: a Terminal opened before Homebrew existed does not have
+# it, and re-running the installer over /opt/homebrew fails.
+if [ ! -x /opt/homebrew/bin/brew ]; then
   echo "    installing Homebrew..."
   run env NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   [ "$DRY_RUN" -eq 1 ] || brew_env
