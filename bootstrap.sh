@@ -36,6 +36,9 @@
 # things only a person can do, tells you what, and picks up where it left
 # off. Expected sequence:
 #
+#   before   → the account you are in must be an administrator (a new Mac's
+#              first account always is). If not, the script says so and stops.
+#
 #   1st run  → stops at once: "Xcode command line tools missing".
 #              A macOS dialog opens. Click Install, accept the licence,
 #              wait for the download (a few minutes). Paste the line again.
@@ -73,7 +76,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,66p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,69p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -105,6 +108,26 @@ fi
 # clone, rather than coming from the list it is needed to fetch.
 
 echo "==> [1/7] Preconditions"
+
+# The user must be an administrator: Homebrew's installer needs sudo to
+# create /opt/homebrew, and it fails one stage in, in its own words, if not.
+# A fresh Mac's first account is always an admin, so a real rebuild never
+# sees this - but a second account, or a VM whose setup wizard was clicked
+# through fast, can be a standard user. Found on the second VM run.
+if ! groups 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
+  cat >&2 <<'EOF'
+!! This user is not an administrator, and Homebrew cannot install without one.
+   System Settings -> Users & Groups -> (i) next to this user ->
+   "Allow this user to administer this computer" -> log out and in.
+   Then paste the same line again.
+
+EOF
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] would stop here; continuing to show the rest"
+  else
+    exit 1
+  fi
+fi
 
 # Xcode command line tools: git itself comes from here on a bare machine,
 # and Homebrew's own installer needs them too. The install is a GUI dialog,

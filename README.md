@@ -21,6 +21,13 @@ zsh $HOME/Downloads/bootstrap.sh
 
 `$HOME` means `~` and is on every keyboard.
 
+**Before run 1 — be an administrator.** The account you run this from must be
+able to administer the computer; Homebrew needs `sudo`. A new Mac's first
+account always is. A second account, or a VM whose setup was clicked through
+quickly, may not be — the script checks and says so before doing anything.
+System Settings → Users & Groups → ⓘ next to the user → *Allow this user to
+administer this computer*, then log out and in.
+
 **Run 1 — the developer tools.** The script stops immediately:
 `Xcode command line tools missing`. A macOS dialog opens (if you cannot see
 it, it is behind the Terminal window). Click **Install**, accept the licence,
