@@ -121,17 +121,20 @@ folder, no shared clipboard: a guest that can see your `~/vc` is not a bare
 machine, and the test is worthless. First boot walks the normal macOS
 setup; make a local user, skip iCloud.
 
-**Snapshot it before you type anything.** Stop the guest, then in UTM's
-sidebar right-click it → snapshot, name it `clean`. That is the reset
-button, and it is the step that gets skipped: without it, "start over"
-means reinstalling macOS, which is an hour, not a minute. Do it now.
+**Clone it before you type anything.** UTM cannot snapshot a macOS guest
+(Apple's virtualisation has no snapshots), so the reset button is a copy:
+stop the guest, right-click it in UTM's sidebar → **Clone**, and never
+touch the clone — call it `clean`. Test in the original; when it is spent,
+delete it and clone `clean` again. It is the step that gets skipped, and
+without it "start over" means reinstalling macOS, which is an hour, not a
+minute. Do it now.
 
 **Run the walkthrough** at the top of this file inside the guest — browser,
 Raw, Downloads, three pastes. `gh auth login` in the guest is a real login
 to your real account: browser flow, empty passphrase is fine.
 
-**When it breaks:** read the `!!` lines, fix the script here, push, restore
-`clean`, run again. That loop is what the snapshot buys.
+**When it breaks:** read the `!!` lines, fix the script here, push, delete
+the spent guest, clone `clean`, run again. That loop is what the clone buys.
 
 **When to test again:** whenever `bootstrap.sh`, the Brewfile, or one of the
 installers it calls has changed since the last clean run. A script that

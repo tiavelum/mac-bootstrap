@@ -279,12 +279,13 @@ if have "$BREWFILE"; then
   # brew bundle stops at the first failure by default, so one server having
   # a bad minute (WhatsApp's returned a 500 on the first real run) left
   # everything after it uninstalled — and the steps that depend on those
-  # tools then failed too. --no-lock is harmless; the retry loop below is
-  # what matters: a second pass installs whatever the first one skipped,
-  # and only what is still missing after that counts as an error.
-  if ! run brew bundle --file="$BREWFILE" --no-lock; then
+  # tools then failed too. The retry loop below is what matters: a second
+  # pass installs whatever the first one skipped, and only what is still
+  # missing after that counts as an error. (No extra flags: the third VM
+  # run showed that a flag brew does not know aborts the whole bundle.)
+  if ! run brew bundle --file="$BREWFILE"; then
     echo "    brew bundle did not complete — retrying once for anything a flaky download skipped"
-    run brew bundle --file="$BREWFILE" --no-lock \
+    run brew bundle --file="$BREWFILE" \
       || echo "!! brew bundle still reports errors — see the ✘ lines above; re-run later for those" >&2
   fi
   # A cask installed a moment ago is not on this shell's PATH yet.
