@@ -1,75 +1,22 @@
 #!/bin/zsh
 # bootstrap.sh — bootstrap a fresh Mac.
 #
-# ORCHESTRATION ONLY: preconditions, clones, and calls into other repos'
-# installers. No mechanism of its own — a step that does real work inline
-# belongs in a repo of its own. If you are about to add such a step here,
-# that is the signal to create (or use) the repo it belongs to.
+# Orchestration only: preconditions, clones into ~/vc, and calls into the
+# other repositories' installers. A step that does real work inline belongs
+# in a repository of its own; this file just calls it.
 #
-# The stages below are ordered by dependency, and the order is not free:
-#   brew -> gh -> gh auth -> clone -> wire config -> apps -> preferences
-# Stage 7 installs the transport that publishes local commits. It is
-# deliberately last and skippable: a Mac is fully usable without it, and
-# it is not needed to work on unrelated repos. Two things depend on it —
-# Claude sessions working in these clones, and the mac-prefs snapshot
-# agent publishing its snapshots.
+# Usage: bootstrap.sh [--dry-run] [--skip-transport]
+#   --dry-run          print what would change instead of doing it; the
+#                      checks still run, so it shows which stages would fire
+#   --skip-transport   leave out stage 7 (git-autosync)
 #
-# Usage: ./bootstrap.sh [--dry-run] [--skip-transport]
+# On a brand-new Mac, paste this into Terminal — three times, following
+# what the script says at each stop (the README has the walkthrough):
 #
-#   --dry-run   print every command that would change the machine instead of
-#               running it. Checks still run for real, so the output shows
-#               which stages *would* fire on this machine and which are
-#               already satisfied. Safe on a Mac you care about.
+#   curl -fsSL https://raw.githubusercontent.com/tiavelum/mac-bootstrap/main/bootstrap.sh -o $HOME/Downloads/bootstrap.sh && zsh $HOME/Downloads/bootstrap.sh
 #
-# ══════════════════════════════════════════════════════════════════════════
-# RUNNING THIS ON A BRAND-NEW MAC — the whole procedure, nothing else needed
-# ══════════════════════════════════════════════════════════════════════════
-#
-# A new Mac has no git and no GitHub login, so this file cannot be cloned —
-# but the repository is public and every Mac has curl. Open Terminal and
-# paste this one line ($HOME means ~ and is on every keyboard):
-#
-#     curl -fsSL https://raw.githubusercontent.com/tiavelum/mac-bootstrap/main/bootstrap.sh -o $HOME/Downloads/bootstrap.sh && zsh $HOME/Downloads/bootstrap.sh
-#
-# It fetches the current script into Downloads and runs it. You will paste
-# that same line THREE times; because it fetches every time, each run is
-# the latest version, so a fix pushed between runs is picked up. The script
-# stops twice for things only a person can do, tells you what, and picks up
-# where it left off. Expected sequence:
-#
-#   before   → the account you are in must be an administrator (a new Mac's
-#              first account always is). If not, the script says so and stops.
-#
-#   1st run  → stops at once: "Xcode command line tools missing".
-#              A macOS dialog opens. Click Install, accept the licence,
-#              wait for the download (a few minutes). Paste the line again.
-#
-#   2nd run  → asks for your Mac password once (Homebrew needs it), installs
-#              Homebrew and gh,
-#              then stops: "Not authenticated with GitHub". In the SAME
-#              window, type:
-#
-#                  gh auth login
-#
-#              Answer: GitHub.com → SSH → Yes, generate a key → (passphrase
-#              optional; on a real Mac give one, it is stored in the
-#              keychain) → title: press Enter → Login with a web browser.
-#              It shows an 8-character CODE like XXXX-XXXX and says press
-#              Enter to open the browser. WRITE THE CODE DOWN FIRST — Safari
-#              opens on top of this window and the code stays behind it.
-#              Type the code into GitHub, Authorize, come back to Terminal.
-#              Paste the line a third time.
-#
-#   3rd run  → runs all seven stages unattended. Takes a while: it downloads
-#              every app in the Brewfile. Ends with "Finished", the few
-#              things left for a person, and a verify block.
-#
-# Every problem the script sees is printed with a leading "!!". If you see
-# none, the run was clean. If you see some, read them — they say what to
-# do — and paste the line once more; the script is safe to repeat.
-#
-# Try it without changing anything: append --dry-run to the line, i.e.
-#     ... && zsh $HOME/Downloads/bootstrap.sh --dry-run
+# Every problem is printed with a leading "!!"; none means a clean run.
+# Safe to repeat: it skips what is already done.
 
 set -e
 
@@ -79,14 +26,12 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,71p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 
-# run: execute a command, or in a dry run print it and pretend it succeeded.
-# Everything that changes the machine goes through this; the checks that
-# only read state do not, so a dry run still reflects the real machine.
+# Everything that changes the machine goes through run(); reads do not.
 run() {
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "    [dry-run] $*"
@@ -102,21 +47,12 @@ else
 fi
 
 # --- Stage 1: preconditions ---------------------------------------------
-# Everything below is cloned from private repos, so both of these must be
-# true before anything else can work.
-#
-# The deliberate circular dependency, and how it is broken: the app list
-# (Brewfile) lives in a private repo that cannot be cloned without an
-# authenticated gh — so gh is installed directly here, ahead of every
-# clone, rather than coming from the list it is needed to fetch.
+# gh is installed here, ahead of the clones: the app list that also names
+# it lives in a private repo that cannot be cloned without it.
 
 echo "==> [1/7] Preconditions"
 
-# The user must be an administrator: Homebrew's installer needs sudo to
-# create /opt/homebrew, and it fails one stage in, in its own words, if not.
-# A fresh Mac's first account is always an admin, so a real rebuild never
-# sees this - but a second account, or a VM whose setup wizard was clicked
-# through fast, can be a standard user.
+# Homebrew needs an administrator; say so up front rather than one stage in.
 if ! groups 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
   cat >&2 <<'EOF'
 !! This user is not an administrator, and Homebrew cannot install without one.
@@ -132,11 +68,8 @@ EOF
   fi
 fi
 
-# Homebrew's installer needs sudo. Ask for the password here, once, where a
-# person expects it - and cache it - rather than letting the installer ask.
-# Setting NONINTERACTIVE for the installer (to skip its "press RETURN")
-# also stops it asking for the password, and it then fails as "need sudo
-# access" even for an administrator.
+# Ask for the password here, once: NONINTERACTIVE below also stops the
+# Homebrew installer from asking, and it then fails as "need sudo access".
 if ! sudo -n true 2>/dev/null; then
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "    [dry-run] sudo -v   (would ask for your Mac password once)"
@@ -145,19 +78,15 @@ if ! sudo -n true 2>/dev/null; then
     sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
   fi
 fi
-# "Once" has to be made true: sudo forgets the password after five minutes,
-# stage 4 takes longer, and casks with privileged installers (OneDrive, Logi
-# Options+) would ask again. Refresh the credential every minute in the
-# background for as long as this script lives; the loop ends with it.
+# Keep the credential fresh: sudo forgets it after five minutes and some
+# casks need it during the long stage 4. The loop dies with this script.
 if [ "$DRY_RUN" -eq 0 ]; then
   ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
   SUDO_KEEPALIVE=$!
   trap 'kill $SUDO_KEEPALIVE 2>/dev/null' EXIT
 fi
 
-# Xcode command line tools: git itself comes from here on a bare machine,
-# and Homebrew's own installer needs them too. The install is a GUI dialog,
-# so the script cannot wait it out — it stops and asks you to come back.
+# The Xcode tools install through a GUI dialog the script cannot wait out.
 if ! xcode-select -p >/dev/null 2>&1; then
   echo "    Xcode command line tools missing"
   run xcode-select --install
@@ -169,10 +98,8 @@ if ! xcode-select -p >/dev/null 2>&1; then
   fi
 fi
 
-# brew_env: put Homebrew on this shell's PATH, and on every future shell's.
-# Homebrew's installer only prints "add this to your .zprofile"; without
-# doing it here, gh (and later code) are "not found" in the very shell the
-# user is left in - and the first thing they are asked to type is gh.
+# Homebrew on this shell's PATH and, via .zprofile, on every future one —
+# the installer only prints the instruction.
 brew_env() {
   local line='eval "$(/opt/homebrew/bin/brew shellenv)"'
   eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -183,8 +110,6 @@ brew_env() {
 
 if ! command -v brew >/dev/null 2>&1; then
   echo "    installing Homebrew..."
-  # NONINTERACTIVE skips the "press RETURN to continue" prompt. It also stops
-  # the installer asking for a password - which is why sudo was cached above.
   run env NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   [ "$DRY_RUN" -eq 1 ] || brew_env
 else
@@ -219,9 +144,7 @@ fi
 echo "==> [2/7] Cloning repos into ~/vc"
 run mkdir -p "$HOME/vc"
 
-# First contact with github.com over SSH asks "are you sure you want to
-# continue connecting?" — once per machine, and always in the middle of a
-# fresh bootstrap. Trust GitHub's published host key up front instead.
+# Pre-trust github.com's host key so the first clone does not stop to ask.
 if ! grep -qs "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
   run mkdir -p "$HOME/.ssh"
   run sh -c "ssh-keyscan -t ed25519 github.com 2>/dev/null >> \"$HOME/.ssh/known_hosts\""
@@ -253,14 +176,10 @@ clone_if_missing mac-quick-actions
 clone_if_missing apple-setup
 # Transport for stage 7; cloned here so the repo list is complete either way.
 clone_if_missing git-autosync
-# This repository itself. On a brand-new Mac this script is run from a
-# curl download in ~/Downloads, so nothing has cloned it yet — and the sync list names
-# it, so the transport would otherwise warn about it forever.
+# This repository itself: on a new Mac the script ran from a download.
 clone_if_missing mac-bootstrap
 
-# have: true if the file exists — or, in a dry run, if it lives in a repo
-# that the dry run would have cloned. Lets the later stages describe what
-# they would do on a fresh machine instead of reporting everything missing.
+# have(): the file exists — or, in a dry run, would exist after stage 2.
 have() {
   [ -f "$1" ] && return 0
   [ "$DRY_RUN" -eq 1 ] || return 1
@@ -270,7 +189,6 @@ have() {
 }
 
 # --- Stage 3: wire the config -------------------------------------------
-# Each repo installs itself; this script only calls.
 echo "==> [3/7] Wiring config"
 
 if have "$HOME/vc/mac-config/install.sh"; then
@@ -285,11 +203,8 @@ echo "==> [4/7] Apps and packages"
 
 BREWFILE="$HOME/vc/mac-config/Brewfile"
 if have "$BREWFILE"; then
-  # brew bundle stops at the first failure, so one server having a bad
-  # minute would leave everything after it uninstalled — and the steps that
-  # depend on those tools would fail too. So: a second pass installs
-  # whatever the first one skipped, and only what is still missing after
-  # that counts as an error.
+  # brew bundle stops at the first failure; a second pass installs what a
+  # flaky download skipped, and only what is still missing then is an error.
   if ! run brew bundle --file="$BREWFILE"; then
     echo "    brew bundle did not complete — retrying once for anything a flaky download skipped"
     run brew bundle --file="$BREWFILE" \
@@ -301,9 +216,8 @@ else
   echo "!! $BREWFILE missing — no apps installed" >&2
 fi
 
-# `code` is not on PATH until VS Code itself installs its shell command,
-# which needs the app opened once. The binary is inside the bundle from the
-# moment the cask lands, so use that path and skip the chicken-and-egg.
+# `code` reaches PATH only after VS Code is opened once; the binary in the
+# bundle is there from the start.
 CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 command -v code >/dev/null 2>&1 && CODE="$(command -v code)"
 EXTENSIONS="$HOME/vc/mac-config/vscode-extensions"
@@ -318,8 +232,8 @@ elif have "$EXTENSIONS"; then
   echo "!! VS Code not found at $CODE — was the cask installed? Re-run after it is." >&2
 fi
 
-# Default applications, last in this stage: the bindings name applications
-# that must already exist, and duti itself comes from the Brewfile above.
+# Default applications last: they name apps that must exist, and duti comes
+# from the Brewfile.
 DEFAULTS="$HOME/vc/mac-config/apply-default-apps.sh"
 if have "$DEFAULTS"; then
   run "$DEFAULTS" || echo "!! default applications not fully applied — see above" >&2
@@ -328,9 +242,6 @@ fi
 # --- Stage 5: tools that install themselves -----------------------------
 echo "==> [5/7] Tools"
 
-# Installs the Finder services and builds Control Center Toggle.app, the
-# application that holds the Accessibility grant for the Control Center
-# hotkey. Granting that permission and binding the key stay manual.
 if have "$HOME/vc/mac-quick-actions/install.sh"; then
   run "$HOME/vc/mac-quick-actions/install.sh" || echo "!! mac-quick-actions/install.sh reported errors — see above" >&2
 else
@@ -338,12 +249,8 @@ else
 fi
 
 # --- Stage 6: preferences -----------------------------------------------
-# Must come after the apps exist: restoring a preference domain for an app
-# that is not installed writes a plist nothing will read.
-#
-# The restore itself is NOT run automatically. It overwrites live settings
-# on a machine you may already have configured, so it stays a deliberate,
-# explicit command.
+# After the apps exist. The import is printed, never run: it overwrites
+# live settings, so it stays a deliberate command.
 echo "==> [6/7] Preferences"
 
 if have "$HOME/vc/mac-prefs/mac-prefs.sh"; then
@@ -357,10 +264,8 @@ else
 fi
 
 # --- Stage 7: transport (optional) --------------------------------------
-# Not part of the Mac. This publishes commits made locally — used by
-# Claude sessions working in these clones, and by the mac-prefs snapshot
-# agent to publish its snapshots. Skip it and everything above still
-# works; you then push by hand.
+# Publishes local commits (sessions, the snapshot agent). Without it you
+# push by hand; everything above still works.
 if [ "$SKIP_TRANSPORT" -eq 1 ]; then
   echo "==> [7/7] Transport — skipped (--skip-transport)"
   echo "    Enable later with: ~/vc/git-autosync/install.sh"
@@ -373,11 +278,9 @@ else
   fi
 fi
 
-# --- Manual steps -------------------------------------------------------
-#
-# Every stage above reports its own errors and lets the run continue, so
-# that this closing checklist is always printed. The exit code, not the
-# word "Done", is what says whether the run was clean.
+# --- Closing ------------------------------------------------------------
+# Every stage reports its own errors and continues, so this always prints;
+# the exit code says whether the run was clean.
 if [ -n "$failed_clones" ]; then
   echo >&2
   echo "!! These repos were NOT cloned:$failed_clones" >&2
