@@ -26,17 +26,17 @@ changing anything.
 opens (it may be behind the Terminal window). Click **Install**, accept the
 licence, wait for the download. Paste the line again.
 
-**Run 2** asks for your Mac password (Homebrew needs it; a couple of app
-installers in run 3 will ask again), installs Homebrew and `gh`, then
-stops: `Not authenticated with GitHub`. In the same window type
+**Run 2** asks for your Mac password (Homebrew needs it), installs Homebrew
+and `gh`, then stops: `Not authenticated with GitHub`. In the same window type
 `gh auth login` and answer: **GitHub.com → SSH → Yes, generate a key →**
 passphrase (empty on a throwaway machine) **→ Enter for the title → Login
 with a web browser**. It prints an eight-character code — **write it down
 before pressing Enter**; Safari opens on top of the Terminal. Type the code
 into GitHub, Authorize, come back, paste the line a third time.
 
-**Run 3** does everything else unattended and ends with `==> Finished`, the
-few things left for a person, and a verify block.
+**Run 3** does everything else and ends with `==> Finished`, the few things
+left for a person, and a verify block. Two app installers ask for the
+password again on the way; that is all the attention it needs.
 
 **Reading the result.** Every problem is printed with a leading `!!`. None
 means the run was clean. Otherwise each line says what to do; fix it and

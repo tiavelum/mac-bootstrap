@@ -64,9 +64,8 @@ if ! xcode-select -p >/dev/null 2>&1; then
   fi
 fi
 
-# Homebrew and some cask installers need an administrator's password. Ask
-# once here; NONINTERACTIVE below stops the Homebrew installer from asking
-# and it would fail as "need sudo access". A long stage 4 may ask again.
+# Homebrew's installer needs an administrator; say so up front rather than
+# one stage in.
 if ! groups 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
   cat >&2 <<'EOF'
 !! This user is not an administrator, and Homebrew cannot install without one.
@@ -79,14 +78,6 @@ EOF
     echo "    [dry-run] would stop here; continuing to show the rest"
   else
     exit 1
-  fi
-fi
-if ! sudo -n true 2>/dev/null; then
-  if [ "$DRY_RUN" -eq 1 ]; then
-    echo "    [dry-run] sudo -v   (would ask for your Mac password)"
-  else
-    echo "    Your Mac password, for Homebrew and the installers that need it:"
-    sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
   fi
 fi
 
@@ -103,6 +94,14 @@ brew_env() {
 # By path, not PATH: a Terminal opened before Homebrew existed does not have
 # it, and re-running the installer over /opt/homebrew fails.
 if [ ! -x /opt/homebrew/bin/brew ]; then
+  # Ask for the password ourselves: NONINTERACTIVE stops the installer from
+  # asking, and it would then fail as "need sudo access".
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] sudo -v   (would ask for your Mac password)"
+  else
+    echo "    Homebrew needs your Mac password:"
+    sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
+  fi
   echo "    installing Homebrew..."
   run env NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   [ "$DRY_RUN" -eq 1 ] || brew_env
