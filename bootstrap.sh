@@ -202,9 +202,8 @@ clone_if_missing machine-config
 clone_if_missing macprefs                      # stage 6 needs the tool
 clone_if_missing macprefs-config               # ... and its snapshots
 clone_if_missing macos-quick-actions
-# Knowledge, and the convention it follows.
-clone_if_missing setup-docs
-clone_if_missing agent-memory
+# Knowledge, and in its claude/ folder the convention sessions follow.
+clone_if_missing apple-setup
 # Transport for stage 7; cloned here so the repo list is complete either way.
 clone_if_missing git-autosync
 # This repository itself. On a brand-new Mac this script is run from a
@@ -341,7 +340,7 @@ fi
 
 cat <<'EOF'
 
-==> Finished. Remaining manual steps (see setup-procedures.md, step A10):
+==> Finished. Remaining manual steps (see apple-setup/docs/setup-procedures.md, step A10):
   - Sign in: iCloud, OneDrive, WhatsApp (QR code), Chrome, Claude
   - Claude in Chrome extension: install from Chrome
   - Claude add-ins for Word/Excel: install from within Word/Excel

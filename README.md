@@ -48,7 +48,7 @@ it. Type the code into the GitHub page, click Authorize, and when it says
 "Congratulations, you're all set", go back to Terminal and paste the script
 line a third time.
 
-**Run 3 — everything else.** All seven stages, unattended: eight repositories
+**Run 3 — everything else.** All seven stages, unattended: seven repositories
 cloned into `~/vc`, git identity and aliases wired, every app in the Brewfile
 installed, Finder actions and the hotkey app built, preferences readied,
 sync agents loaded. It ends with `==> Finished`, a list of the sign-ins that
@@ -69,7 +69,7 @@ reboot before assigning the MX Keys screenshot key in Logi Options+; then
 the app sign-ins (Chrome, WhatsApp by QR code, OneDrive, Claude). Preference
 import is deliberate and never automatic:
 `~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps`.
-The full list with detail is procedures A10 in `setup-docs`.
+The full list with detail is procedures A10 in `apple-setup/docs`.
 
 ## Run it again later
 
@@ -190,13 +190,13 @@ unauthenticated `gh` stops the run and names the command to type.
 ## Repositories
 
 The authoritative map of which repo holds what is in
-[setup-design.md](https://github.com/tiavelum/setup-docs/blob/main/setup-design.md).
+[setup-design.md](https://github.com/tiavelum/apple-setup/blob/main/docs/setup-design.md).
 
 ## `install-log.md`
 
 Chronological journal of what was installed and when. Append-only: entries are
 correct *as history*, so stale paths in old rows stay. Current truth lives in
-`setup-docs`.
+`apple-setup`.
 
 ## Workflow
 
