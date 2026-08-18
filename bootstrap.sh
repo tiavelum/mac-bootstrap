@@ -61,8 +61,8 @@
 #              Paste the line a third time.
 #
 #   3rd run  → runs all seven stages unattended. Takes a while: it downloads
-#              every app in the Brewfile. Ends with "Finished", a list of
-#              the manual sign-ins that remain, and a verify block.
+#              every app in the Brewfile. Ends with "Finished", the few
+#              things left for a person, and a verify block.
 #
 # Every problem the script sees is printed with a leading "!!". If you see
 # none, the run was clean. If you see some, read them — they say what to
@@ -391,17 +391,15 @@ fi
 
 cat <<'EOF'
 
-==> Finished. Remaining manual steps (see apple-setup/docs/setup-procedures.md, step A10):
-  - Sign in: iCloud, OneDrive, WhatsApp (QR code), Chrome, Claude
-  - Claude in Chrome extension: install from Chrome
-  - Claude add-ins for Word/Excel: install from within Word/Excel
-  - Claude Code in VS Code: log in with "Claude.ai Subscription"
-  - Claude <-> GitHub connector: install AND authorize (two separate acts)
-  - Logi Options+: reboot, then assign the MX Keys screenshot key
-  - Maccy: launch at login, history size, hotkey
-  - Control Center Toggle.app: built by stage 5 — launch it once, grant
+==> Finished. What this run leaves for you to do by hand:
+  - Restore the saved preferences, deliberately (stage 6 only made it ready):
+      ~/vc/mac-prefs/mac-prefs.sh import ~/vc/mac-prefs-config/current --quit-apps
+    then keep them current:  ~/vc/mac-prefs/install-snapshot-agent.sh
+  - Control Center Toggle.app (built by stage 5): launch it once, grant
     Accessibility, then bind a key to it in Shortcuts
-  - Passwords app: syncs via Apple account automatically
+  - Every sign-in and permission grant: the list is owned by
+    apple-setup/docs/setup-procedures.md, section
+    "Sign-ins and grants that no script can do"
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0

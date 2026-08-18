@@ -72,15 +72,11 @@ safe to repeat, it skips what is already done. A `✘` from `brew bundle` is
 usually a download that failed on the vendor's side; the script retries once
 and, if it still fails, names it so you can `brew install` it later.
 
-**After it finishes — the manual steps.** These need a person and a screen,
-in this order: sign in to iCloud; open the Passwords app so it syncs; open
-VS Code once and sign in to Claude Code; launch `Control Center Toggle.app`
-once, grant Accessibility when asked, then bind a key to it in Shortcuts;
-reboot before assigning the MX Keys screenshot key in Logi Options+; then
-the app sign-ins (Chrome, WhatsApp by QR code, OneDrive, Claude). Preference
-import is deliberate and never automatic:
-`~/vc/mac-prefs/mac-prefs.sh import ~/vc/mac-prefs-config/current --quit-apps`.
-The full list with detail is procedures A10 in `apple-setup/docs`.
+**After it finishes.** The script prints the few things its own stages leave
+for a person — the deliberate preference import, the Accessibility grant for
+the hotkey app — and points at the full list of sign-ins and grants, which
+lives in `apple-setup/docs/setup-procedures.md` under *"Sign-ins and grants
+that no script can do"*.
 
 ## Run it again later
 
@@ -171,16 +167,76 @@ Homebrew and the Xcode tools with your account, so it does not test stage 1.
 
 ## The seven stages
 
+Two checks that stop the run, then seven stages ordered by dependency. It
+orchestrates only: preconditions, clones, and calls into the other repos'
+own installers.
+
+```mermaid
+flowchart TB
+  S(["`./bootstrap.sh`"])
+  X1{"`Xcode command
+  line tools?`"}
+  BREW["`**1** Install Homebrew
+  then gh`"]
+  X2{"`gh authenticated?`"}
+  CLONE["`**2** Clone the repos
+  into ~/vc`"]
+  WIRE["`**3** mac-config/install.sh
+  identity · aliases · sync list`"]
+  APPS["`**4** brew bundle, VS Code
+  extensions, default apps`"]
+  TOOLS["`**5** mac-quick-actions
+  services + hotkey app`"]
+  PREFS["`**6** mac-prefs ready
+  import stays manual`"]
+  TRANS["`**7** git-autosync
+  optional transport`"]
+  MAN["`Manual: sign-ins,
+  Accessibility, hotkey`"]
+  STOP1(["`Stops: finish the
+  macOS dialog, re-run`"])
+  STOP2(["`Stops: run
+  gh auth login`"])
+
+  S --> X1
+  X1 -->|no| STOP1
+  X1 -->|yes| BREW
+  BREW --> X2
+  X2 -->|no| STOP2
+  X2 -->|yes| CLONE
+  CLONE ==> WIRE ==> APPS ==> TOOLS ==> PREFS ==> TRANS ==> MAN
+
+  classDef stop fill:#FFCDD2,stroke:#C62828,color:#000
+  classDef gate fill:#FFF9C4,stroke:#F9A825,color:#000
+  classDef step fill:#BBDEFB,stroke:#1565C0,color:#000
+  classDef manual fill:#ECEFF1,stroke:#546E7A,color:#000
+  class STOP1,STOP2 stop
+  class X1,X2 gate
+  class BREW,CLONE,WIRE,APPS,TOOLS,PREFS,TRANS step
+  class MAN manual
 ```
-1  preconditions      Homebrew, gh, gh auth status — unauthenticated stops the run
-2  clone              the other repos into ~/vc, mac-config first
-3  wire the config    calls mac-config/install.sh (identity, aliases, sync list)
-4  apps & extensions  brew bundle from the Brewfile, VS Code extensions
-5  tools              repos that install themselves, each via its own install.sh
-6  preferences        makes mac-prefs executable and prints its commands —
-                      the restore itself stays a deliberate manual command
-7  transport          optional: git-autosync. Skip with --skip-transport
-```
+
+1. **Preconditions** — the Xcode command line tools must exist (their
+   installer is a GUI dialog; missing, the script says so and stops), then
+   Homebrew and `gh` are installed if absent, and `gh auth status` must
+   pass — unauthenticated, it prints the login command and exits non-zero.
+2. **Clone** every repo of the setup into `~/vc` over SSH, `mac-config`
+   first (every later stage reads it) and this repository last; github.com
+   is pre-trusted so the first clone does not stop to ask. A failed clone is
+   reported, the run continues, and the exit code is non-zero at the end.
+3. **Wire the config** — calls `mac-config/install.sh` (identity, aliases,
+   sync list; details in that README).
+4. **Apps** — `brew bundle` on the Brewfile, retried once for flaky
+   downloads; VS Code extensions; then `mac-config/apply-default-apps.sh`.
+5. **Tools** — calls `mac-quick-actions/install.sh` (Finder services and
+   the hotkey application).
+6. **Preferences** — makes the `mac-prefs` scripts executable and prints
+   the import command. It never runs it: an import overwrites live
+   settings, so it stays a deliberate command.
+7. **Transport (optional)** — calls `git-autosync/install.sh` unless
+   `--skip-transport`; without it nothing publishes itself.
+
+It ends with what is left for a person and a short verify block.
 
 ## The invariant
 
