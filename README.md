@@ -73,10 +73,9 @@ usually a download that failed on the vendor's side; the script retries once
 and, if it still fails, names it so you can `brew install` it later.
 
 **After it finishes.** The script prints the few things its own stages leave
-for a person — the deliberate preference import, the Accessibility grant for
-the hotkey app — and points at the full list of sign-ins and grants, which
-lives in `apple-setup/docs/setup-procedures.md` under *"Sign-ins and grants
-that no script can do"*.
+for a person: the deliberate preference import, and the Accessibility grant
+for the hotkey app. Sign-ins and permissions for the apps it installed are
+yours to do afterwards.
 
 ## Run it again later
 
@@ -248,29 +247,16 @@ from slowly becoming the place where everything lands.
 Check it whenever you touch the file: open it and look for a step doing domain
 work. There should not be one.
 
-## The deliberate circular dependency
+## Why `gh` is installed twice
 
-The list of apps to install lives in the private `mac-config` repo, and `gh` is
-on that list — but `mac-config` cannot be cloned without an authenticated `gh`.
-The loop is broken by installing `gh` **directly in stage 1, ahead of every
-clone**; it stays in the Brewfile for completeness, where it is a no-op on a
-machine that already has it. Authentication itself no script can do, so an
-unauthenticated `gh` stops the run and names the command to type.
-
-## Repositories
-
-The authoritative map of which repo holds what is in
-[setup-design.md](https://github.com/tiavelum/apple-setup/blob/main/docs/setup-design.md).
+`gh` is installed directly in stage 1, ahead of every clone, on purpose: the
+app list lives in a private repo that cannot be cloned without an
+authenticated `gh`. It stays in the Brewfile as well, where it is a no-op on
+a machine that already has it.
 
 ## `install-log.md`
 
-Chronological journal of what was installed and when. Append-only: entries are
-correct *as history*, so stale paths in old rows stay. Current truth lives in
-`apple-setup`.
-
-## Workflow
-
-Installed something by hand? Add a row to `install-log.md`. Declaring it so
-the next rebuild gets it, and publishing the commit, are the setup's
-business, not this repo's: procedures *"Apps, packages and editor
-extensions → Adding something new"* in `apple-setup/docs`.
+Chronological journal of what was installed on the machine and when.
+Append-only: entries are correct *as history*, so stale paths in old rows
+stay. Installed something by hand? Add a row here, and declare it in
+`mac-config` so the next rebuild gets it.

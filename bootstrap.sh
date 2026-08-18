@@ -397,9 +397,7 @@ cat <<'EOF'
     then keep them current:  ~/vc/mac-prefs/install-snapshot-agent.sh
   - Control Center Toggle.app (built by stage 5): launch it once, grant
     Accessibility, then bind a key to it in Shortcuts
-  - Every sign-in and permission grant: the list is owned by
-    apple-setup/docs/setup-procedures.md, section
-    "Sign-ins and grants that no script can do"
+  - Sign in to the apps that were installed, and grant what they ask for
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
