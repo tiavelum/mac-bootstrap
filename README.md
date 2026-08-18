@@ -37,11 +37,9 @@ wait — it is a couple of gigabytes. When it says done, paste the same line
 again.
 
 **Run 2 — Homebrew, gh, and your login.** The script asks for your Mac
-password once — Homebrew needs it, and the script keeps the credential
-fresh for the rest of the run so nothing asks again — then installs Homebrew and `gh` with no
-further questions, then
-stops: `Not authenticated with GitHub`. In the **same** Terminal window,
-type:
+password once (and keeps it fresh for the rest of the run), installs
+Homebrew and `gh`, then stops: `Not authenticated with GitHub`. In the
+**same** Terminal window, type:
 
 ```zsh
 gh auth login
