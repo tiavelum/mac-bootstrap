@@ -68,7 +68,7 @@ once, grant Accessibility when asked, then bind a key to it in Shortcuts;
 reboot before assigning the MX Keys screenshot key in Logi Options+; then
 the app sign-ins (Chrome, WhatsApp by QR code, OneDrive, Claude). Preference
 import is deliberate and never automatic:
-`~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps`.
+`~/vc/mac-prefs/mac-prefs.sh import ~/vc/mac-prefs-config/current --quit-apps`.
 The full list with detail is procedures A10 in `apple-setup/docs`.
 
 ## Run it again later
@@ -159,11 +159,11 @@ Homebrew and the Xcode tools with your account, so it does not test stage 1.
 
 ```
 1  preconditions      Homebrew, gh, gh auth status — unauthenticated stops the run
-2  clone              the other repos into ~/vc, machine-config first
-3  wire the config    calls machine-config/install.sh (identity, aliases, sync list)
+2  clone              the other repos into ~/vc, mac-config first
+3  wire the config    calls mac-config/install.sh (identity, aliases, sync list)
 4  apps & extensions  brew bundle from the Brewfile, VS Code extensions
 5  tools              repos that install themselves, each via its own install.sh
-6  preferences        makes macprefs executable and prints its commands —
+6  preferences        makes mac-prefs executable and prints its commands —
                       the restore itself stays a deliberate manual command
 7  transport          optional: git-autosync. Skip with --skip-transport
 ```
@@ -180,8 +180,8 @@ work. There should not be one.
 
 ## The deliberate circular dependency
 
-The list of apps to install lives in the private `machine-config` repo, and `gh` is
-on that list — but `machine-config` cannot be cloned without an authenticated `gh`.
+The list of apps to install lives in the private `mac-config` repo, and `gh` is
+on that list — but `mac-config` cannot be cloned without an authenticated `gh`.
 The loop is broken by installing `gh` **directly in stage 1, ahead of every
 clone**; it stays in the Brewfile for completeness, where it is a no-op on a
 machine that already has it. Authentication itself no script can do, so an
@@ -201,6 +201,6 @@ correct *as history*, so stale paths in old rows stay. Current truth lives in
 ## Workflow
 
 1. Install something → add a row to `install-log.md`
-2. If it's Homebrew-installable → also add it to `machine-config/Brewfile`
+2. If it's Homebrew-installable → also add it to `mac-config/Brewfile`
 3. Commit — nothing commits for you; git-autosync only transports commits
 4. `touch .git/autosync-push` to publish, then check `.git/autosync-status`

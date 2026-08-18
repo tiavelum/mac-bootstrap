@@ -11,7 +11,7 @@
 # Stage 7 installs the transport that publishes local commits. It is
 # deliberately last and skippable: a Mac is fully usable without it, and
 # it is not needed to work on unrelated repos. Two things depend on it —
-# Claude sessions working in these clones, and the macprefs snapshot
+# Claude sessions working in these clones, and the mac-prefs snapshot
 # agent publishing its snapshots.
 #
 # Usage: ./bootstrap.sh [--dry-run] [--skip-transport]
@@ -196,12 +196,12 @@ clone_if_missing() {
   fi
 }
 
-# machine-config first: it carries the config every later stage reads.
-clone_if_missing machine-config
+# mac-config first: it carries the config every later stage reads.
+clone_if_missing mac-config
 # Tools that install or are invoked by later stages.
-clone_if_missing macprefs                      # stage 6 needs the tool
-clone_if_missing macprefs-config               # ... and its snapshots
-clone_if_missing macos-quick-actions
+clone_if_missing mac-prefs                      # stage 6 needs the tool
+clone_if_missing mac-prefs-config               # ... and its snapshots
+clone_if_missing mac-quick-actions
 # Knowledge, and in its claude/ folder the convention sessions follow.
 clone_if_missing apple-setup
 # Transport for stage 7; cloned here so the repo list is complete either way.
@@ -226,17 +226,17 @@ have() {
 # Each repo installs itself; this script only calls.
 echo "==> [3/7] Wiring config"
 
-if have "$HOME/vc/machine-config/install.sh"; then
-  run zsh "$HOME/vc/machine-config/install.sh" || echo "!! machine-config/install.sh reported errors — see above" >&2
+if have "$HOME/vc/mac-config/install.sh"; then
+  run zsh "$HOME/vc/mac-config/install.sh" || echo "!! mac-config/install.sh reported errors — see above" >&2
 else
-  echo "!! ~/vc/machine-config/install.sh missing — git identity, aliases and the" >&2
+  echo "!! ~/vc/mac-config/install.sh missing — git identity, aliases and the" >&2
   echo "   autosync repo list are NOT wired up" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
 echo "==> [4/7] Apps and packages"
 
-BREWFILE="$HOME/vc/machine-config/Brewfile"
+BREWFILE="$HOME/vc/mac-config/Brewfile"
 if have "$BREWFILE"; then
   # brew bundle stops at the first failure by default, so one server having
   # a bad minute (WhatsApp's returned a 500 on the first real run) left
@@ -260,7 +260,7 @@ fi
 # moment the cask lands, so use that path and skip the chicken-and-egg.
 CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 command -v code >/dev/null 2>&1 && CODE="$(command -v code)"
-EXTENSIONS="$HOME/vc/machine-config/vscode-extensions"
+EXTENSIONS="$HOME/vc/mac-config/vscode-extensions"
 if have "$EXTENSIONS" && { [ -x "$CODE" ] || [ "$DRY_RUN" -eq 1 ]; }; then
   echo "    VS Code extensions"
   [ -f "$EXTENSIONS" ] || echo "    [dry-run] would install each id listed in $EXTENSIONS"
@@ -274,7 +274,7 @@ fi
 
 # Default applications, last in this stage: the bindings name applications
 # that must already exist, and duti itself comes from the Brewfile above.
-DEFAULTS="$HOME/vc/machine-config/apply-default-apps.sh"
+DEFAULTS="$HOME/vc/mac-config/apply-default-apps.sh"
 if have "$DEFAULTS"; then
   run "$DEFAULTS" || echo "!! default applications not fully applied — see above" >&2
 fi
@@ -285,10 +285,10 @@ echo "==> [5/7] Tools"
 # Installs the Finder services and builds Control Center Toggle.app, the
 # application that holds the Accessibility grant for the Control Center
 # hotkey. Granting that permission and binding the key stay manual.
-if have "$HOME/vc/macos-quick-actions/install.sh"; then
-  run "$HOME/vc/macos-quick-actions/install.sh" || echo "!! macos-quick-actions/install.sh reported errors — see above" >&2
+if have "$HOME/vc/mac-quick-actions/install.sh"; then
+  run "$HOME/vc/mac-quick-actions/install.sh" || echo "!! mac-quick-actions/install.sh reported errors — see above" >&2
 else
-  echo "!! ~/vc/macos-quick-actions/install.sh missing — Finder services not installed" >&2
+  echo "!! ~/vc/mac-quick-actions/install.sh missing — Finder services not installed" >&2
 fi
 
 # --- Stage 6: preferences -----------------------------------------------
@@ -300,19 +300,19 @@ fi
 # explicit command.
 echo "==> [6/7] Preferences"
 
-if have "$HOME/vc/macprefs/macprefs.sh"; then
-  run chmod +x "$HOME/vc/macprefs/macprefs.sh" "$HOME/vc/macprefs/install-snapshot-agent.sh" || true
-  echo "    macprefs ready. To restore this Mac's settings, run deliberately:"
-  echo "      ~/vc/macprefs/macprefs.sh import ~/vc/macprefs-config/current --quit-apps"
+if have "$HOME/vc/mac-prefs/mac-prefs.sh"; then
+  run chmod +x "$HOME/vc/mac-prefs/mac-prefs.sh" "$HOME/vc/mac-prefs/install-snapshot-agent.sh" || true
+  echo "    mac-prefs ready. To restore this Mac's settings, run deliberately:"
+  echo "      ~/vc/mac-prefs/mac-prefs.sh import ~/vc/mac-prefs-config/current --quit-apps"
   echo "    and then, to keep snapshots current:"
-  echo "      ~/vc/macprefs/install-snapshot-agent.sh"
+  echo "      ~/vc/mac-prefs/install-snapshot-agent.sh"
 else
-  echo "!! ~/vc/macprefs missing — no preference restore available" >&2
+  echo "!! ~/vc/mac-prefs missing — no preference restore available" >&2
 fi
 
 # --- Stage 7: transport (optional) --------------------------------------
 # Not part of the Mac. This publishes commits made locally — used by
-# Claude sessions working in these clones, and by the macprefs snapshot
+# Claude sessions working in these clones, and by the mac-prefs snapshot
 # agent to publish its snapshots. Skip it and everything above still
 # works; you then push by hand.
 if [ "$SKIP_TRANSPORT" -eq 1 ]; then
@@ -354,8 +354,8 @@ cat <<'EOF'
 
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
-  git config user.email                    # from machine-config/gitconfig
-  readlink ~/.config/git-autosync/repos    # -> ~/vc/machine-config/git-autosync-repos
+  git config user.email                    # from mac-config/gitconfig
+  readlink ~/.config/git-autosync/repos    # -> ~/vc/mac-config/git-autosync-repos
   launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
 EOF
