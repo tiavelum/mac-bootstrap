@@ -202,9 +202,8 @@ clone_if_missing machine-config
 clone_if_missing macprefs                      # stage 6 needs the tool
 clone_if_missing macprefs-config               # ... and its snapshots
 clone_if_missing macos-quick-actions
-# On-demand tools: no installer, run from the clone when needed.
+# On-demand tool: no installer, run from the clone when needed.
 clone_if_missing doc-convert
-clone_if_missing vcard-merge
 # Knowledge, and the convention it follows.
 clone_if_missing setup-docs
 clone_if_missing agent-memory
