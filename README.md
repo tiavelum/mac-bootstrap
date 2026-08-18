@@ -11,15 +11,17 @@ and prove to GitHub that you are you — and continues from where it stopped.
 Everything else is automatic. Budget 20–40 minutes, most of it downloads.
 
 **Before you start.** A fresh Mac has no `git` and no GitHub login, so this
-repository cannot be cloned yet. Open Safari → `github.com/tiavelum/mac-bootstrap`
-→ `bootstrap.sh` → **Raw** → save it to Downloads. Then open Terminal
-(Spotlight → "Terminal") and paste:
+repository cannot be cloned yet — but it is public and every Mac has `curl`.
+Open Terminal (Spotlight → "Terminal") and paste:
 
 ```zsh
-zsh $HOME/Downloads/bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/tiavelum/mac-bootstrap/main/bootstrap.sh -o $HOME/Downloads/bootstrap.sh && zsh $HOME/Downloads/bootstrap.sh
 ```
 
-`$HOME` means `~` and is on every keyboard.
+That fetches the current script into Downloads and runs it. `$HOME` means
+`~` and is on every keyboard. Paste the same line each time: it fetches
+again, so a fix pushed between two runs is already in the next one. Append
+`--dry-run` to the line to see what a run would do without changing anything.
 
 **Before run 1 — be an administrator.** The account you run this from must be
 able to administer the computer; Homebrew needs `sudo`. A new Mac's first
@@ -129,8 +131,8 @@ delete it and clone `clean` again. It is the step that gets skipped, and
 without it "start over" means reinstalling macOS, which is an hour, not a
 minute. Do it now.
 
-**Run the walkthrough** at the top of this file inside the guest — browser,
-Raw, Downloads, three pastes. `gh auth login` in the guest is a real login
+**Run the walkthrough** at the top of this file inside the guest — the one
+line, three pastes. `gh auth login` in the guest is a real login
 to your real account: browser flow, empty passphrase is fine.
 
 **When it breaks:** read the `!!` lines, fix the script here, push, delete

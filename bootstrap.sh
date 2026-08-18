@@ -25,16 +25,17 @@
 # RUNNING THIS ON A BRAND-NEW MAC — the whole procedure, nothing else needed
 # ══════════════════════════════════════════════════════════════════════════
 #
-# A new Mac has no git and no GitHub login, so this file cannot be cloned.
-# Get it through the browser: github.com/tiavelum/mac-bootstrap →
-# bootstrap.sh → "Raw" → save to Downloads. Then open Terminal and paste
-# this ($HOME means ~ and is on every keyboard):
+# A new Mac has no git and no GitHub login, so this file cannot be cloned —
+# but the repository is public and every Mac has curl. Open Terminal and
+# paste this one line ($HOME means ~ and is on every keyboard):
 #
-#     zsh $HOME/Downloads/bootstrap.sh
+#     curl -fsSL https://raw.githubusercontent.com/tiavelum/mac-bootstrap/main/bootstrap.sh -o $HOME/Downloads/bootstrap.sh && zsh $HOME/Downloads/bootstrap.sh
 #
-# You will paste that same line THREE times. The script stops twice for
-# things only a person can do, tells you what, and picks up where it left
-# off. Expected sequence:
+# It fetches the current script into Downloads and runs it. You will paste
+# that same line THREE times; because it fetches every time, each run is
+# the latest version, so a fix pushed between runs is picked up. The script
+# stops twice for things only a person can do, tells you what, and picks up
+# where it left off. Expected sequence:
 #
 #   before   → the account you are in must be an administrator (a new Mac's
 #              first account always is). If not, the script says so and stops.
@@ -67,7 +68,8 @@
 # none, the run was clean. If you see some, read them — they say what to
 # do — and paste the line once more; the script is safe to repeat.
 #
-# Try it without changing anything:   zsh $HOME/Downloads/bootstrap.sh --dry-run
+# Try it without changing anything: append --dry-run to the line, i.e.
+#     ... && zsh $HOME/Downloads/bootstrap.sh --dry-run
 
 set -e
 
@@ -77,7 +79,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,70p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,71p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -245,7 +247,7 @@ clone_if_missing apple-setup
 # Transport for stage 7; cloned here so the repo list is complete either way.
 clone_if_missing git-autosync
 # This repository itself. On a brand-new Mac this script is run from a
-# browser download, so nothing has cloned it yet — and the sync list names
+# curl download in ~/Downloads, so nothing has cloned it yet — and the sync list names
 # it, so the transport would otherwise warn about it forever.
 clone_if_missing mac-bootstrap
 
