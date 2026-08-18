@@ -43,7 +43,8 @@
 #              A macOS dialog opens. Click Install, accept the licence,
 #              wait for the download (a few minutes). Paste the line again.
 #
-#   2nd run  → installs Homebrew (asks for your Mac password once) and gh,
+#   2nd run  → asks for your Mac password once (Homebrew needs it), installs
+#              Homebrew and gh,
 #              then stops: "Not authenticated with GitHub". In the SAME
 #              window, type:
 #
@@ -76,7 +77,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-transport) SKIP_TRANSPORT=1 ;;
     --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,69p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,70p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -129,6 +130,20 @@ EOF
   fi
 fi
 
+# Homebrew's installer needs sudo. Ask for the password here, once, where a
+# person expects it - and cache it - rather than letting the installer ask.
+# Setting NONINTERACTIVE for the installer (to skip its "press RETURN")
+# also stops it asking for the password, and it then fails as "need sudo
+# access" even for an administrator. Found on the second VM run.
+if ! sudo -n true 2>/dev/null; then
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] sudo -v   (would ask for your Mac password once)"
+  else
+    echo "    Homebrew needs your Mac password once:"
+    sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
+  fi
+fi
+
 # Xcode command line tools: git itself comes from here on a bare machine,
 # and Homebrew's own installer needs them too. The install is a GUI dialog,
 # so the script cannot wait it out — it stops and asks you to come back.
@@ -159,8 +174,8 @@ brew_env() {
 
 if ! command -v brew >/dev/null 2>&1; then
   echo "    installing Homebrew..."
-  # NONINTERACTIVE: skip the "press RETURN to continue" prompt. It has no
-  # decision behind it, and it turned an unattended stage into a babysat one.
+  # NONINTERACTIVE skips the "press RETURN to continue" prompt. It also stops
+  # the installer asking for a password - which is why sudo was cached above.
   run env NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   [ "$DRY_RUN" -eq 1 ] || brew_env
 else

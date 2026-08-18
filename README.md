@@ -34,8 +34,9 @@ it, it is behind the Terminal window). Click **Install**, accept the licence,
 wait — it is a couple of gigabytes. When it says done, paste the same line
 again.
 
-**Run 2 — Homebrew, gh, and your login.** The script installs Homebrew
-(asks for your Mac password once, then no further questions) and `gh`, then
+**Run 2 — Homebrew, gh, and your login.** The script asks for your Mac
+password once — Homebrew needs it — then installs Homebrew and `gh` with no
+further questions, then
 stops: `Not authenticated with GitHub`. In the **same** Terminal window,
 type:
 
