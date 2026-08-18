@@ -52,7 +52,21 @@ fi
 
 echo "==> [1/7] Preconditions"
 
-# Homebrew needs an administrator; say so up front rather than one stage in.
+# The Xcode tools install through a GUI dialog the script cannot wait out.
+if ! xcode-select -p >/dev/null 2>&1; then
+  echo "    Xcode command line tools missing"
+  run xcode-select --install
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "    [dry-run] would stop here until the install finishes; continuing to show the rest"
+  else
+    echo "!! A macOS dialog has opened. Finish that install, then re-run this script." >&2
+    exit 1
+  fi
+fi
+
+# Homebrew and some cask installers need an administrator's password. Ask
+# once here; NONINTERACTIVE below stops the Homebrew installer from asking
+# and it would fail as "need sudo access". A long stage 4 may ask again.
 if ! groups 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
   cat >&2 <<'EOF'
 !! This user is not an administrator, and Homebrew cannot install without one.
@@ -67,34 +81,12 @@ EOF
     exit 1
   fi
 fi
-
-# Ask for the password here, once: NONINTERACTIVE below also stops the
-# Homebrew installer from asking, and it then fails as "need sudo access".
 if ! sudo -n true 2>/dev/null; then
   if [ "$DRY_RUN" -eq 1 ]; then
-    echo "    [dry-run] sudo -v   (would ask for your Mac password once)"
+    echo "    [dry-run] sudo -v   (would ask for your Mac password)"
   else
-    echo "    Homebrew needs your Mac password once:"
+    echo "    Your Mac password, for Homebrew and the installers that need it:"
     sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
-  fi
-fi
-# Keep the credential fresh: sudo forgets it after five minutes and some
-# casks need it during the long stage 4. The loop dies with this script.
-if [ "$DRY_RUN" -eq 0 ]; then
-  ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
-  SUDO_KEEPALIVE=$!
-  trap 'kill $SUDO_KEEPALIVE 2>/dev/null' EXIT
-fi
-
-# The Xcode tools install through a GUI dialog the script cannot wait out.
-if ! xcode-select -p >/dev/null 2>&1; then
-  echo "    Xcode command line tools missing"
-  run xcode-select --install
-  if [ "$DRY_RUN" -eq 1 ]; then
-    echo "    [dry-run] would stop here until the install finishes; continuing to show the rest"
-  else
-    echo "!! A macOS dialog has opened. Finish that install, then re-run this script." >&2
-    exit 1
   fi
 fi
 

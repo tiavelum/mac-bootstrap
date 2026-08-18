@@ -26,7 +26,8 @@ changing anything.
 opens (it may be behind the Terminal window). Click **Install**, accept the
 licence, wait for the download. Paste the line again.
 
-**Run 2** asks for your Mac password once, installs Homebrew and `gh`, then
+**Run 2** asks for your Mac password (Homebrew needs it; a couple of app
+installers in run 3 will ask again), installs Homebrew and `gh`, then
 stops: `Not authenticated with GitHub`. In the same window type
 `gh auth login` and answer: **GitHub.com → SSH → Yes, generate a key →**
 passphrase (empty on a throwaway machine) **→ Enter for the title → Login
