@@ -48,7 +48,7 @@ it. Type the code into the GitHub page, click Authorize, and when it says
 "Congratulations, you're all set", go back to Terminal and paste the script
 line a third time.
 
-**Run 3 — everything else.** All seven stages, unattended: nine repositories
+**Run 3 — everything else.** All seven stages, unattended: eight repositories
 cloned into `~/vc`, git identity and aliases wired, every app in the Brewfile
 installed, Finder actions and the hotkey app built, preferences readied,
 sync agents loaded. It ends with `==> Finished`, a list of the sign-ins that
