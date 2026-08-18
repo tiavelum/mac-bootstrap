@@ -145,16 +145,10 @@ if ! sudo -n true 2>/dev/null; then
     sudo -v || { echo "!! could not get administrator access - is this an admin account?" >&2; exit 1; }
   fi
 fi
-# "Once" has to be made true: sudo forgets the password after five minutes
-# and the app downloads in stage 4 take longer, so casks with privileged
-# installers (OneDrive, Logi Options+) asked again mid-run - the third VM run
-# showed four prompts. Refresh the credential every minute in the background
-# for as long as this script lives; the loop ends by itself when it is gone.
-if [ "$DRY_RUN" -eq 0 ]; then
-  ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
-  SUDO_KEEPALIVE=$!
-  trap 'kill $SUDO_KEEPALIVE 2>/dev/null' EXIT
-fi
+# sudo forgets the password after five minutes and stage 4 takes longer, so
+# a cask with a privileged installer (OneDrive, Logi Options+) may ask again
+# mid-run. Accepted: a background keep-alive loop would be a second process
+# to reason about, for the price of typing the password a few more times.
 
 # Xcode command line tools: git itself comes from here on a bare machine,
 # and Homebrew's own installer needs them too. The install is a GUI dialog,
