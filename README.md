@@ -270,7 +270,7 @@ correct *as history*, so stale paths in old rows stay. Current truth lives in
 
 ## Workflow
 
-1. Install something → add a row to `install-log.md`
-2. If it's Homebrew-installable → also add it to `mac-config/Brewfile`
-3. Commit — nothing commits for you; git-autosync only transports commits
-4. `touch .git/autosync-push` to publish, then check `.git/autosync-status`
+Installed something by hand? Add a row to `install-log.md`. Declaring it so
+the next rebuild gets it, and publishing the commit, are the setup's
+business, not this repo's: procedures *"Apps, packages and editor
+extensions → Adding something new"* in `apple-setup/docs`.
