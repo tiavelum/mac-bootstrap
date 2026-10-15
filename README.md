@@ -35,7 +35,7 @@ before pressing Enter**; Safari opens on top of the Terminal. Type the code
 into GitHub, Authorize, come back, paste the line a third time.
 
 **Run 3** does everything else and ends with `==> Finished`, the few things
-left for a person, and a verify block. Two app installers ask for the
+left for a person, and a verify block. Three app installers ask for the
 password again on the way; that is all the attention it needs.
 
 **Reading the result.** Every problem is printed with a leading `!!`. None
