@@ -5,10 +5,9 @@
 # other repositories' installers. A step that does real work inline belongs
 # in a repository of its own; this file just calls it.
 #
-# Usage: bootstrap.sh [--dry-run] [--skip-transport]
+# Usage: bootstrap.sh [--dry-run]
 #   --dry-run          print what would change instead of doing it; the
 #                      checks still run, so it shows which stages would fire
-#   --skip-transport   leave out stage 7 (git-autosync)
 #
 # On a brand-new Mac, paste this into Terminal — three times, following
 # what the script says at each stop (the README has the walkthrough):
@@ -20,13 +19,11 @@
 
 set -e
 
-SKIP_TRANSPORT=0
 DRY_RUN=0
 for arg in "$@"; do
   case "$arg" in
-    --skip-transport) SKIP_TRANSPORT=1 ;;
-    --dry-run)        DRY_RUN=1 ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    --dry-run) DRY_RUN=1 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -50,7 +47,7 @@ fi
 # gh is installed here, ahead of the clones: the app list that also names
 # it lives in a private repo that cannot be cloned without it.
 
-echo "==> [1/7] Preconditions"
+echo "==> [1/6] Preconditions"
 
 # The Xcode tools install through a GUI dialog the script cannot wait out.
 if ! xcode-select -p >/dev/null 2>&1; then
@@ -134,7 +131,7 @@ EOF
 fi
 
 # --- Stage 2: clone -----------------------------------------------------
-echo "==> [2/7] Cloning repos into ~/vc"
+echo "==> [2/6] Cloning repos into ~/vc"
 run mkdir -p "$HOME/vc"
 
 # Pre-trust github.com's host key so the first clone does not stop to ask.
@@ -167,8 +164,6 @@ clone_if_missing mac-prefs-config               # ... and its snapshots
 clone_if_missing mac-quick-actions
 # Knowledge, and in its claude/ folder the convention sessions follow.
 clone_if_missing apple-setup
-# Transport for stage 7; cloned here so the repo list is complete either way.
-clone_if_missing git-autosync
 # This repository itself: on a new Mac the script ran from a download.
 clone_if_missing mac-bootstrap
 
@@ -182,17 +177,16 @@ have() {
 }
 
 # --- Stage 3: wire the config -------------------------------------------
-echo "==> [3/7] Wiring config"
+echo "==> [3/6] Wiring config"
 
 if have "$HOME/vc/mac-config/install.sh"; then
   run zsh "$HOME/vc/mac-config/install.sh" || echo "!! mac-config/install.sh reported errors — see above" >&2
 else
-  echo "!! ~/vc/mac-config/install.sh missing — git identity, aliases and the" >&2
-  echo "   autosync repo list are NOT wired up" >&2
+  echo "!! ~/vc/mac-config/install.sh missing — git identity and aliases are NOT wired up" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
-echo "==> [4/7] Apps and packages"
+echo "==> [4/6] Apps and packages"
 
 BREWFILE="$HOME/vc/mac-config/Brewfile"
 if have "$BREWFILE"; then
@@ -233,7 +227,7 @@ if have "$DEFAULTS"; then
 fi
 
 # --- Stage 5: tools that install themselves -----------------------------
-echo "==> [5/7] Tools"
+echo "==> [5/6] Tools"
 
 if have "$HOME/vc/mac-quick-actions/install.sh"; then
   run "$HOME/vc/mac-quick-actions/install.sh" || echo "!! mac-quick-actions/install.sh reported errors — see above" >&2
@@ -244,7 +238,7 @@ fi
 # --- Stage 6: preferences -----------------------------------------------
 # After the apps exist. The import is printed, never run: it overwrites
 # live settings, so it stays a deliberate command.
-echo "==> [6/7] Preferences"
+echo "==> [6/6] Preferences"
 
 if have "$HOME/vc/mac-prefs/mac-prefs.sh"; then
   run chmod +x "$HOME/vc/mac-prefs/mac-prefs.sh" "$HOME/vc/mac-prefs/install-snapshot-agent.sh" || true
@@ -254,21 +248,6 @@ if have "$HOME/vc/mac-prefs/mac-prefs.sh"; then
   echo "      ~/vc/mac-prefs/install-snapshot-agent.sh"
 else
   echo "!! ~/vc/mac-prefs missing — no preference restore available" >&2
-fi
-
-# --- Stage 7: transport (optional) --------------------------------------
-# Publishes local commits (sessions, the snapshot agent). Without it you
-# push by hand; everything above still works.
-if [ "$SKIP_TRANSPORT" -eq 1 ]; then
-  echo "==> [7/7] Transport — skipped (--skip-transport)"
-  echo "    Enable later with: ~/vc/git-autosync/install.sh"
-else
-  echo "==> [7/7] Transport (optional)"
-  if have "$HOME/vc/git-autosync/install.sh"; then
-    run "$HOME/vc/git-autosync/install.sh" || echo "!! git-autosync/install.sh reported errors — the agents may not be running" >&2
-  else
-    echo "!! ~/vc/git-autosync/install.sh missing — commits will not publish themselves" >&2
-  fi
 fi
 
 # --- Closing ------------------------------------------------------------
@@ -293,8 +272,6 @@ cat <<'EOF'
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
   git config user.email                    # from mac-config/gitconfig
-  readlink ~/.config/git-autosync/repos    # -> ~/vc/mac-config/git-autosync-repos
-  launchctl list | grep git-autosync       # two agents, if stage 7 ran
   ls ~/Library/Services                    # the Finder Quick Actions
 EOF
 

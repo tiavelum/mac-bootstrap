@@ -45,12 +45,12 @@ paste the line once more — the script skips what is already done.
 ## Run it again later
 
 ```zsh
-cd $HOME/vc/mac-bootstrap && ./bootstrap.sh     # --dry-run | --skip-transport
+cd $HOME/vc/mac-bootstrap && ./bootstrap.sh     # --dry-run
 ```
 
 Idempotent; re-running is how you repair a machine whose wiring drifted.
 
-## The seven stages
+## The six stages
 
 ```mermaid
 flowchart TB
@@ -67,8 +67,6 @@ flowchart TB
   TOOLS["`**5** mac-quick-actions/install.sh`"]
   PREFS["`**6** mac-prefs ready
   (import stays manual)`"]
-  TRANS["`**7** git-autosync/install.sh
-  (optional)`"]
   STOP1(["`stop: finish the
   macOS dialog, re-run`"])
   STOP2(["`stop: gh auth login`"])
@@ -79,19 +77,18 @@ flowchart TB
   BREW --> X2
   X2 -->|no| STOP2
   X2 -->|yes| CLONE
-  CLONE ==> WIRE ==> APPS ==> TOOLS ==> PREFS ==> TRANS
+  CLONE ==> WIRE ==> APPS ==> TOOLS ==> PREFS
 
   classDef stop fill:#FFCDD2,stroke:#C62828,color:#000
   classDef gate fill:#FFF9C4,stroke:#F9A825,color:#000
   classDef step fill:#BBDEFB,stroke:#1565C0,color:#000
   class STOP1,STOP2 stop
   class X1,X2 gate
-  class BREW,CLONE,WIRE,APPS,TOOLS,PREFS,TRANS step
+  class BREW,CLONE,WIRE,APPS,TOOLS,PREFS step
 ```
 
 Ordered by dependency: `mac-config` is cloned first because every later
-stage reads it; the transport comes last because a Mac is fully usable
-without it (`--skip-transport` leaves it out). `gh` is installed in stage 1,
+stage reads it. `gh` is installed in stage 1,
 ahead of the clones, because the app list lives in a private repo that
 cannot be cloned without it. Stage 6 only *prints* the preference-import
 command: an import overwrites live settings, so it stays a deliberate act.
