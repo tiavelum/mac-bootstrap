@@ -28,7 +28,13 @@ licence, wait for the download. Paste the line again.
 
 **Run 2** asks for your Mac password (Homebrew needs it), installs Homebrew
 and `gh`, then stops: `Not authenticated with GitHub`. In the same window type
-`gh auth login` and answer: **GitHub.com → SSH → Yes, generate a key →**
+the command it prints,
+
+```zsh
+gh auth login -s admin:ssh_signing_key
+```
+
+and answer: **GitHub.com → SSH → Yes, generate a key →**
 passphrase (empty on a throwaway machine) **→ Enter for the title → Login
 with a web browser**. It prints an eight-character code — **write it down
 before pressing Enter**; Safari opens on top of the Terminal. Type the code
@@ -61,7 +67,8 @@ flowchart TB
   X2{"`gh authenticated?`"}
   CLONE["`**2** clone the repos
   into ~/vc`"]
-  WIRE["`**3** mac-config/install.sh`"]
+  WIRE["`**3** mac-config/install.sh,
+  register the signing key`"]
   APPS["`**4** brew bundle, VS Code
   extensions, default apps`"]
   TOOLS["`**5** mac-quick-actions/install.sh`"]
@@ -108,7 +115,8 @@ fix here, push, clone `clean`, run again. Test again whenever this script,
 the Brewfile or an installer it calls has changed.
 
 Afterwards revoke what the guest was given: the SSH key titled "GitHub CLI"
-under github.com → Settings → SSH and GPG keys, and the device under
+and the signing key titled "<guest's computer name> signing", both under
+github.com → Settings → SSH and GPG keys, and the device under
 Settings → Applications → Authorized GitHub Apps → GitHub CLI.
 
 ## The invariant
