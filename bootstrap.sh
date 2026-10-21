@@ -117,7 +117,9 @@ if ! gh auth status >/dev/null 2>&1; then
 !! Not authenticated with GitHub. Every repo below is private.
    Run this, choosing GitHub.com / SSH / browser, then re-run this script:
 
-     gh auth login
+     gh auth login -s admin:ssh_signing_key
+
+   (The extra scope lets stage 3 register the SSH key for commit signing.)
 
    (If that says "command not found", open a new Terminal window first —
     this run has just put Homebrew on the PATH of future shells.)
@@ -183,6 +185,13 @@ if have "$HOME/vc/mac-config/install.sh"; then
   run zsh "$HOME/vc/mac-config/install.sh" || echo "!! mac-config/install.sh reported errors — see above" >&2
 else
   echo "!! ~/vc/mac-config/install.sh missing — git identity and aliases are NOT wired up" >&2
+fi
+
+# After install.sh: the script reads the signing key's path from the git
+# config that install.sh has just wired.
+if have "$HOME/vc/mac-config/register-signing-key.sh"; then
+  run zsh "$HOME/vc/mac-config/register-signing-key.sh" \
+    || echo "!! signing key not registered on GitHub — commits will not show as verified; see above" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
