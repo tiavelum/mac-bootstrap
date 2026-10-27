@@ -164,6 +164,8 @@ clone_if_missing mac-config
 clone_if_missing mac-prefs                      # stage 6 needs the tool
 clone_if_missing mac-prefs-config               # ... and its snapshots
 clone_if_missing mac-quick-actions
+# Renders shortcuts.yaml from mac-config; set up in stage 5.
+clone_if_missing mac-shortcut-map
 # The user instructions Claude Code reads, linked in stage 3.
 clone_if_missing claude-setup
 # The account's GitHub settings; registers the signing key in stage 3.
@@ -257,6 +259,22 @@ else
   echo "!! ~/vc/mac-quick-actions/install.sh missing — Finder services not installed" >&2
 fi
 
+# After the Brewfile stage, which installs node. The check reads
+# ~/vc/mac-config/shortcuts.yaml, so it also proves the map is valid.
+SHORTCUT_MAP="$HOME/vc/mac-shortcut-map"
+if have "$SHORTCUT_MAP/package.json"; then
+  if ! command -v npm >/dev/null 2>&1 && [ "$DRY_RUN" -eq 0 ]; then
+    echo "!! npm not found — is node in mac-config/Brewfile? mac-shortcut-map not set up" >&2
+  elif run npm ci --prefix "$SHORTCUT_MAP" --no-audit --no-fund --no-update-notifier --loglevel=error; then
+    run node "$SHORTCUT_MAP/src/cli.js" check \
+      || echo "!! mac-shortcut-map cannot read ~/vc/mac-config/shortcuts.yaml — see above" >&2
+  else
+    echo "!! npm ci failed in ~/vc/mac-shortcut-map — see above" >&2
+  fi
+else
+  echo "!! ~/vc/mac-shortcut-map missing — no shortcut overview or cheat sheet" >&2
+fi
+
 # --- Stage 6: preferences -----------------------------------------------
 # After the apps exist. The import is printed, never run: it overwrites
 # live settings, so it stays a deliberate command.
@@ -296,6 +314,7 @@ cat <<'EOF'
   git config user.email                    # from mac-config/gitconfig
   ~/vc/github-setup/register-signing-key.sh   # "already registered on GitHub"
   ls ~/Library/Services                    # the Finder Quick Actions
+  node ~/vc/mac-shortcut-map/src/cli.js check   # the size of the shortcut map
 EOF
 
 if [ -n "$failed_clones" ]; then
