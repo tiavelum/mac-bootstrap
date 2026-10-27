@@ -294,6 +294,7 @@ cat <<'EOF'
 ==> Verify:
   git alias | wc -l                        # the full alias set, not 0
   git config user.email                    # from mac-config/gitconfig
+  ~/vc/github-setup/register-signing-key.sh   # "already registered on GitHub"
   ls ~/Library/Services                    # the Finder Quick Actions
 EOF
 
