@@ -71,7 +71,8 @@ flowchart TB
   signing key, claude-setup`"]
   APPS["`**4** brew bundle, VS Code
   extensions, default apps`"]
-  TOOLS["`**5** mac-quick-actions/install.sh`"]
+  TOOLS["`**5** mac-quick-actions/install.sh,
+  mac-shortcut-map set up`"]
   PREFS["`**6** mac-prefs ready
   (import stays manual)`"]
   STOP1(["`stop: finish the
