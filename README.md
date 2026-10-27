@@ -68,7 +68,7 @@ flowchart TB
   CLONE["`**2** clone the repos
   into ~/vc`"]
   WIRE["`**3** mac-config/install.sh,
-  register the signing key`"]
+  signing key, claude-setup`"]
   APPS["`**4** brew bundle, VS Code
   extensions, default apps`"]
   TOOLS["`**5** mac-quick-actions/install.sh`"]
