@@ -166,6 +166,8 @@ clone_if_missing mac-prefs-config               # ... and its snapshots
 clone_if_missing mac-quick-actions
 # The user instructions Claude Code reads, linked in stage 3.
 clone_if_missing claude-setup
+# The account's GitHub settings; registers the signing key in stage 3.
+clone_if_missing github-setup
 # Knowledge, and in its claude/ folder the convention sessions follow.
 clone_if_missing apple-setup
 # This repository itself: on a new Mac the script ran from a download.
@@ -191,9 +193,11 @@ fi
 
 # After install.sh: the script reads the signing key's path from the git
 # config that install.sh has just wired.
-if have "$HOME/vc/mac-config/register-signing-key.sh"; then
-  run zsh "$HOME/vc/mac-config/register-signing-key.sh" \
+if have "$HOME/vc/github-setup/register-signing-key.sh"; then
+  run bash "$HOME/vc/github-setup/register-signing-key.sh" \
     || echo "!! signing key not registered on GitHub — commits will not show as verified; see above" >&2
+else
+  echo "!! ~/vc/github-setup/register-signing-key.sh missing — commits will not show as verified on GitHub" >&2
 fi
 
 if have "$HOME/vc/claude-setup/setup-local.sh"; then
