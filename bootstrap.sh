@@ -164,6 +164,8 @@ clone_if_missing mac-config
 clone_if_missing mac-prefs                      # stage 6 needs the tool
 clone_if_missing mac-prefs-config               # ... and its snapshots
 clone_if_missing mac-quick-actions
+# The user instructions Claude Code reads, linked in stage 3.
+clone_if_missing claude-setup
 # Knowledge, and in its claude/ folder the convention sessions follow.
 clone_if_missing apple-setup
 # This repository itself: on a new Mac the script ran from a download.
@@ -192,6 +194,13 @@ fi
 if have "$HOME/vc/mac-config/register-signing-key.sh"; then
   run zsh "$HOME/vc/mac-config/register-signing-key.sh" \
     || echo "!! signing key not registered on GitHub — commits will not show as verified; see above" >&2
+fi
+
+if have "$HOME/vc/claude-setup/setup-local.sh"; then
+  run bash "$HOME/vc/claude-setup/setup-local.sh" \
+    || echo "!! claude-setup/setup-local.sh reported errors — Claude Code may not read the user instructions; see above" >&2
+else
+  echo "!! ~/vc/claude-setup/setup-local.sh missing — Claude Code does NOT read the user instructions" >&2
 fi
 
 # --- Stage 4: install what the config declares --------------------------
